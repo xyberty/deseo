@@ -128,7 +128,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       )}
 
       <div className="grid gap-6">
-        <form onSubmit={handleAddItem} className="bg-white p-4 rounded-lg shadow">
+        <form onSubmit={handleAddItem} className="bg-white p-4 rounded-lg shadow-sm">
           <h2 className="text-lg font-heading font-semibold mb-4">Add New Item</h2>
           <div className="grid gap-4">
             <Input
@@ -164,7 +164,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
         <div className="grid gap-4">
           {wishlist.items.map((item) => (
-            <div key={item.id} className="bg-white p-4 rounded-lg shadow">
+            <div key={item.id} className="bg-white p-4 rounded-lg shadow-sm">
               <h3 className="font-heading font-semibold text-gray-900">{item.name}</h3>
               {item.description && (
                 <p className="text-gray-600 mt-1">{item.description}</p>
