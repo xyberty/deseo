@@ -57,7 +57,7 @@ export default function DashboardPage() {
             <Link
               key={wishlist._id}
               href={`/wishlist/${wishlist._id}`}
-              className="block p-6 bg-card rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
+              className="block p-6 bg-card rounded-lg border shadow-xs hover:shadow-md transition-all duration-200"
               data-slot="wishlist-card"
             >
               <h2 className="text-xl font-montserrat font-semibold text-card-foreground mb-2">
