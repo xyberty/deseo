@@ -8,7 +8,7 @@ export async function GET(request: Request) {
 
   if (!token) {
     return NextResponse.json(
-      { error: "Invalid token" },
+      { error: "Token is required" },
       { status: 400 }
     );
   }
@@ -50,9 +50,26 @@ export async function GET(request: Request) {
     return response;
   } catch (error) {
     console.error("Magic link verification error:", error);
+    
+    // Handle specific JWT errors
+    if (error instanceof Error) {
+      if (error.message === 'Token has expired') {
+        return NextResponse.json(
+          { error: "This magic link has expired. Please request a new one." },
+          { status: 400 }
+        );
+      }
+      if (error.message === 'Invalid token') {
+        return NextResponse.json(
+          { error: "Invalid magic link. Please request a new one." },
+          { status: 400 }
+        );
+      }
+    }
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Invalid or expired token" },
-      { status: 400 }
+      { error: "Failed to verify magic link" },
+      { status: 500 }
     );
   }
 } 
