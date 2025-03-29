@@ -10,9 +10,10 @@ import { toast } from 'sonner';
 import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
 import { MagicLinkForm } from '@/app/components/MagicLinkForm';
 import { use } from 'react';
-import { Pencil, Trash2, ArrowUpRight } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Pencil, Trash2, ArrowUpRight, Plus } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import Link from 'next/link';
+import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 
 export default function WishlistPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -175,9 +176,71 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
             <p className="text-gray-600 mt-1">{wishlist.description}</p>
           )}
         </div>
-        <Button onClick={() => setShowSaveForm(true)}>
-          Save & Share
-        </Button>
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <h2 className="text-lg font-heading font-semibold">Add New Item</h2>
+                <form onSubmit={handleAddItem} className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newItemDescription}
+                      onChange={(e) => setNewItemDescription(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="price">Price</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={newItemPrice}
+                      onChange={(e) => setNewItemPrice(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="url">URL</Label>
+                    <Input
+                      id="url"
+                      type="url"
+                      value={newItemUrl}
+                      onChange={(e) => setNewItemUrl(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="imageUrl">Image URL</Label>
+                    <Input
+                      id="imageUrl"
+                      type="url"
+                      value={newItemImageUrl}
+                      onChange={(e) => setNewItemImageUrl(e.target.value)}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">Add Item</Button>
+                </form>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button onClick={() => setShowSaveForm(true)}>
+            Save & Share
+          </Button>
+        </div>
       </div>
 
       {showSaveForm && (
@@ -215,225 +278,171 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         </div>
       )}
 
-      <div className="grid gap-6">
-        <form onSubmit={handleAddItem} className="bg-white p-4 rounded-lg shadow-sm">
-          <h2 className="text-lg font-heading font-semibold mb-4">Add New Item</h2>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={newItemName}
-                onChange={(e) => setNewItemName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={newItemDescription}
-                onChange={(e) => setNewItemDescription(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="price">Price</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                value={newItemPrice}
-                onChange={(e) => setNewItemPrice(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="url">URL</Label>
-              <Input
-                id="url"
-                type="url"
-                value={newItemUrl}
-                onChange={(e) => setNewItemUrl(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="imageUrl">Image URL</Label>
-              <Input
-                id="imageUrl"
-                type="url"
-                value={newItemImageUrl}
-                onChange={(e) => setNewItemImageUrl(e.target.value)}
-              />
-            </div>
-            <Button type="submit">Add Item</Button>
-          </div>
-        </form>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {wishlist.items.map((item) => (
-            <Card key={item.id} className="group relative gap-0 py-0">
-              {item.imageUrl && (
-                <div className="aspect-square rounded-t-lg overflow-hidden">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setEditingItem(item)}
-                      className="h-8 w-8 bg-background/80 backdrop-blur-sm"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Edit Item</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleEditItem} className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-name">Name</Label>
-                        <Input
-                          id="edit-name"
-                          value={editingItem?.name || ""}
-                          onChange={(e) =>
-                            setEditingItem((prev) =>
-                              prev ? { ...prev, name: e.target.value } : null
-                            )
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-description">Description</Label>
-                        <Textarea
-                          id="edit-description"
-                          value={editingItem?.description || ""}
-                          onChange={(e) =>
-                            setEditingItem((prev) =>
-                              prev ? { ...prev, description: e.target.value } : null
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-price">Price</Label>
-                        <Input
-                          id="edit-price"
-                          type="number"
-                          step="0.01"
-                          value={editingItem?.price || ""}
-                          onChange={(e) =>
-                            setEditingItem((prev) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    price: e.target.value
-                                      ? parseFloat(e.target.value)
-                                      : undefined,
-                                  }
-                                : null
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-url">URL</Label>
-                        <Input
-                          id="edit-url"
-                          type="url"
-                          value={editingItem?.url || ""}
-                          onChange={(e) =>
-                            setEditingItem((prev) =>
-                              prev ? { ...prev, url: e.target.value } : null
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-imageUrl">Image URL</Label>
-                        <Input
-                          id="edit-imageUrl"
-                          type="url"
-                          value={editingItem?.imageUrl || ""}
-                          onChange={(e) =>
-                            setEditingItem((prev) =>
-                              prev ? { ...prev, imageUrl: e.target.value } : null
-                            )
-                          }
-                        />
-                      </div>
-                      <Button type="submit">Save Changes</Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-
-                <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setItemToDelete(item)}
-                      className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground bg-background/80 backdrop-blur-sm"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Delete Item</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <p>Are you sure you want to delete this item?</p>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setDeleteDialogOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={handleDeleteItem}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {wishlist.items.map((item) => (
+          <Card key={item.id} className="group relative gap-0 py-0">
+            {item.imageUrl && (
+              <div className="aspect-square rounded-t-lg overflow-hidden">
+                <img
+                  src={item.imageUrl}
+                  alt={item.name}
+                  className="p-4 w-full h-full object-cover"
+                />
               </div>
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-base">{item.name}</CardTitle>
-                {item.description && (
-                  <CardDescription className="text-sm mt-1">{item.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                {item.price && (
-                  <p className="text-green-600 font-medium">${item.price.toFixed(2)}</p>
-                )}
-                {item.url && (
-                  <Link
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline text-sm mt-1 inline-flex items-center gap-1"
+            )}
+            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setEditingItem(item)}
+                    className="h-8 w-8 bg-background/80 backdrop-blur-sm"
                   >
-                    View Item
-                    <ArrowUpRight className="h-3 w-3"/>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Item</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleEditItem} className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-name">Name</Label>
+                      <Input
+                        id="edit-name"
+                        value={editingItem?.name || ""}
+                        onChange={(e) =>
+                          setEditingItem((prev) =>
+                            prev ? { ...prev, name: e.target.value } : null
+                          )
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-description">Description</Label>
+                      <Textarea
+                        id="edit-description"
+                        value={editingItem?.description || ""}
+                        onChange={(e) =>
+                          setEditingItem((prev) =>
+                            prev ? { ...prev, description: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-price">Price</Label>
+                      <Input
+                        id="edit-price"
+                        type="number"
+                        step="0.01"
+                        value={editingItem?.price || ""}
+                        onChange={(e) =>
+                          setEditingItem((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  price: e.target.value
+                                    ? parseFloat(e.target.value)
+                                    : undefined,
+                                }
+                              : null
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-url">URL</Label>
+                      <Input
+                        id="edit-url"
+                        type="url"
+                        value={editingItem?.url || ""}
+                        onChange={(e) =>
+                          setEditingItem((prev) =>
+                            prev ? { ...prev, url: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-imageUrl">Image URL</Label>
+                      <Input
+                        id="edit-imageUrl"
+                        type="url"
+                        value={editingItem?.imageUrl || ""}
+                        onChange={(e) =>
+                          setEditingItem((prev) =>
+                            prev ? { ...prev, imageUrl: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                    <Button type="submit">Save Changes</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setItemToDelete(item)}
+                    className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground bg-background/80 backdrop-blur-sm"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Delete Item</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p>Are you sure you want to delete this item?</p>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setDeleteDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteItem}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-base">{item.name}</CardTitle>
+              {item.description && (
+                <CardDescription className="text-sm mt-1">{item.description}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              {item.price && (
+                <p className="text-green-600 font-medium">${item.price.toFixed(2)}</p>
+              )}
+              {item.url && (
+                <Link
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline text-sm mt-1 inline-flex items-center gap-1"
+                >
+                  View Item
+                  <ArrowUpRight className="h-3 w-3"/>
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </main>
   );
