@@ -5,12 +5,12 @@ import type { WishlistItem } from '@/app/types/wishlist';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const db = await getDb();
     const { id } = await params;
-    const item = await request.json() as WishlistItem;
+    const { name, description, price, url, imageUrl } = await request.json();
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -19,10 +19,21 @@ export async function POST(
       );
     }
 
+    const newItem: WishlistItem = {
+      id: crypto.randomUUID(),
+      name,
+      description,
+      price: price ? Number(price) : undefined,
+      url,
+      imageUrl,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
     const result = await db.collection('wishlists').updateOne(
       { _id: new ObjectId(id) },
       {
-        $push: { items: item },
+        $push: { items: newItem },
         $set: { updatedAt: new Date() },
       } as any
     );
@@ -34,7 +45,7 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, item: newItem });
   } catch (error) {
     console.error('Error adding item:', error);
     return NextResponse.json(
