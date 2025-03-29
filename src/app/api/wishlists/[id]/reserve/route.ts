@@ -112,9 +112,10 @@ export async function GET(
       return NextResponse.json({ reservations: [] });
     }
 
+    const { id } = await params;
     const db = await getDb();
     const wishlist = await db.collection("wishlists").findOne(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id) },
       { projection: { reservations: 1 } }
     );
 
