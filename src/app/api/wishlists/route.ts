@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { title, description, items = [] } = body;
 
-    const wishlist: Omit<Wishlist, '_id'> = {
+    const wishlist = {
       title,
       description,
       items,
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const result = await db.collection('wishlists').insertOne(wishlist as any);
     
     return NextResponse.json({
-      id: result.insertedId,
+      id: result.insertedId.toString(),
       ...wishlist,
     });
   } catch (error) {
