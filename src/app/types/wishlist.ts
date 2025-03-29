@@ -8,8 +8,6 @@ export interface WishlistItem {
     imageUrl?: string;
     reservedBy?: string;
     reservedAt?: Date;
-    createdAt: Date;
-    updatedAt: Date;
   }
   
   export interface Wishlist {
