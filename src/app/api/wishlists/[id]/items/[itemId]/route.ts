@@ -71,42 +71,47 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string; itemId: string }> }
+  request: NextRequest,
+  { params }: { params: { id: string; itemId: string } }
 ) {
+  const { id, itemId } = await params;
+
+  if (!id || !itemId) {
+    return NextResponse.json(
+      { error: 'Invalid wishlist or item ID' },
+      { status: 400 }
+    );
+  }
+
   try {
-    const { id, itemId } = await params;
     const db = await getDb();
-
-    // Validate wishlist ID
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid wishlist ID" },
-        { status: 400 }
-      );
-    }
-
-    // Remove the item from the wishlist
     const result = await db.collection('wishlists').updateOne(
       { _id: new ObjectId(id) },
       { 
-        $pull: { items: { id: itemId } } as any,
+        $pull: { items: { id: itemId } },
         $set: { updatedAt: new Date() }
-      }
+      } as any
     );
 
     if (result.matchedCount === 0) {
       return NextResponse.json(
-        { error: "Wishlist not found" },
+        { error: 'Wishlist not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ message: "Item deleted successfully" });
+    if (result.modifiedCount === 0) {
+      return NextResponse.json(
+        { error: 'Item not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ message: 'Item deleted successfully' });
   } catch (error) {
     console.error('Error deleting item:', error);
     return NextResponse.json(
-      { error: "Failed to delete item" },
+      { error: 'Failed to delete item' },
       { status: 500 }
     );
   }
