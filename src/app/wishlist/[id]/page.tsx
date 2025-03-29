@@ -270,7 +270,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {wishlist.items.map((item) => (
-            <Card key={item.id} className="flex flex-col">
+            <Card key={item.id} className="group relative gap-0 py-0">
               {item.imageUrl && (
                 <div className="aspect-square rounded-t-lg overflow-hidden">
                   <img
@@ -280,36 +280,14 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                   />
                 </div>
               )}
-              <CardHeader className="flex-none">
-                <CardTitle>{item.name}</CardTitle>
-                {item.description && (
-                  <CardDescription>{item.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                {item.price && (
-                  <p className="text-green-600 font-medium mt-1">${item.price.toFixed(2)}</p>
-                )}
-                {item.url && (
-                  <Link
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline text-sm mt-2 inline-flex items-center gap-1"
-                  >
-                    View Item
-                    <ArrowUpRight className="h-4 w-4"/>
-                  </Link>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2">
+              <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => setEditingItem(item)}
-                      className="h-8 w-8"
+                      className="h-8 w-8 bg-background/80 backdrop-blur-sm"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -402,7 +380,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                       variant="outline"
                       size="icon"
                       onClick={() => setItemToDelete(item)}
-                      className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground bg-background/80 backdrop-blur-sm"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -430,7 +408,29 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                     </div>
                   </DialogContent>
                 </Dialog>
-              </CardFooter>
+              </div>
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-base">{item.name}</CardTitle>
+                {item.description && (
+                  <CardDescription className="text-sm mt-1">{item.description}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                {item.price && (
+                  <p className="text-green-600 font-medium">${item.price.toFixed(2)}</p>
+                )}
+                {item.url && (
+                  <Link
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline text-sm mt-1 inline-flex items-center gap-1"
+                  >
+                    View Item
+                    <ArrowUpRight className="h-3 w-3"/>
+                  </Link>
+                )}
+              </CardContent>
             </Card>
           ))}
         </div>
