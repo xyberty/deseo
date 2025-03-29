@@ -7,11 +7,12 @@ import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
-import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
+import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
 import { MagicLinkForm } from '@/app/components/MagicLinkForm';
 import { use } from 'react';
-import { Pencil, Trash2, ArrowUpRight, Plus } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpRight, Plus, Gift } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 
@@ -29,9 +30,18 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<WishlistItem | null>(null);
+  const [reserveDialogOpen, setReserveDialogOpen] = useState(false);
+  const [itemToReserve, setItemToReserve] = useState<WishlistItem | null>(null);
+  const [reserverEmail, setReserverEmail] = useState('');
+  const [passphrase, setPassphrase] = useState('');
+  const [userReservations, setUserReservations] = useState<Reservation[]>([]);
 
   useEffect(() => {
     fetchWishlist();
+  }, [resolvedParams.id]);
+
+  useEffect(() => {
+    fetchUserReservations();
   }, [resolvedParams.id]);
 
   // Add keyboard event listener for Escape key
@@ -58,6 +68,17 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchUserReservations = async () => {
+    try {
+      const response = await fetch(`/api/wishlists/${resolvedParams.id}/reserve`);
+      if (!response.ok) throw new Error('Failed to fetch reservations');
+      const data = await response.json();
+      setUserReservations(data.reservations || []);
+    } catch (error) {
+      console.error('Error fetching reservations:', error);
     }
   };
 
@@ -144,6 +165,40 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to delete item',
+      });
+    }
+  };
+
+  const handleReserveItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemToReserve) return;
+
+    try {
+      const response = await fetch(`/api/wishlists/${resolvedParams.id}/reserve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemId: itemToReserve.id,
+          reserverEmail: reserverEmail || null,
+          passphrase: passphrase || null
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reserve item');
+      }
+
+      setReserveDialogOpen(false);
+      setItemToReserve(null);
+      setReserverEmail('');
+      setPassphrase('');
+      fetchWishlist();
+      fetchUserReservations();
+      toast.success('Item reserved successfully');
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'Failed to reserve item',
       });
     }
   };
@@ -429,17 +484,68 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               {item.price && (
                 <p className="text-green-600 font-medium">${item.price.toFixed(2)}</p>
               )}
-              {item.url && (
-                <Link
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline text-sm mt-1 inline-flex items-center gap-1"
-                >
-                  View Item
-                  <ArrowUpRight className="h-3 w-3"/>
-                </Link>
-              )}
+              <div className="flex justify-between items-center mt-2">
+                {item.url && (
+                  <Link
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline text-sm inline-flex items-center gap-1"
+                  >
+                    View Item
+                    <ArrowUpRight className="h-3 w-3"/>
+                  </Link>
+                )}
+                {!wishlist.reservations?.some(r => r.itemId === item.id) && (
+                  <Dialog open={reserveDialogOpen} onOpenChange={setReserveDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setItemToReserve(item)}
+                        className="h-8"
+                      >
+                        <Gift className="h-4 w-4 mr-2" />
+                        Reserve
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Reserve Item</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleReserveItem} className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="email">Email (optional)</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={reserverEmail}
+                            onChange={(e) => setReserverEmail(e.target.value)}
+                            placeholder="Enter your email for updates"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="passphrase">Passphrase (optional)</Label>
+                          <Input
+                            id="passphrase"
+                            type="text"
+                            value={passphrase}
+                            onChange={(e) => setPassphrase(e.target.value)}
+                            placeholder="Create a passphrase to manage your reservation"
+                          />
+                        </div>
+                        <Button type="submit" className="w-full">Reserve Item</Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                )}
+                {userReservations.some(r => r.itemId === item.id) && (
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <Gift className="h-4 w-4" />
+                    <span>You</span>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}

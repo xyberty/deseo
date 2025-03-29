@@ -12,12 +12,21 @@ export interface WishlistItem {
     updatedAt: Date;
   }
   
+  export interface Reservation {
+    itemId: string;
+    reserverId: string;
+    reserverEmail: string | null;
+    passphrase?: string;
+    reservedAt: Date;
+  }
+  
   export interface Wishlist {
-    _id: string;
-    userId: string;
+    _id?: string;
     title: string;
     description?: string;
     items: WishlistItem[];
+    reservations?: Reservation[];
+    userId?: string;
     createdAt: Date;
     updatedAt: Date;
   }
