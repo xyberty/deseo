@@ -30,5 +30,5 @@ if (process.env.NODE_ENV === 'development') {
 
 export async function getDb() {
   const client = await clientPromise;
-  return client.db();
+  return client.db(process.env.MONGODB_DB || 'deseo');
 } 
