@@ -6,8 +6,6 @@ export interface WishlistItem {
     price?: number;
     url?: string;
     imageUrl?: string;
-    reservedBy?: string;
-    reservedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
   }
@@ -26,7 +24,15 @@ export interface WishlistItem {
     description?: string;
     items: WishlistItem[];
     reservations?: Reservation[];
-    userId?: string;
+    
+    // Authentication/ownership fields
+    userId?: string;         // For authenticated users
+    ownerToken?: string;     // For anonymous creators (temporary token)
+    shareToken?: string;     // For sharing (permanent token)
+    isPublic: boolean;       // Whether non-authenticated users can view
+    allowEdits: boolean;     // Whether the wishlist can be edited by viewers
+    
+    // Tracking
     createdAt: Date;
     updatedAt: Date;
   }
