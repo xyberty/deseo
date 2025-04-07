@@ -576,11 +576,13 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
             <Card key={item.id} className="group relative gap-0 py-0">
               {/* Show edit/delete buttons only for users with edit permission */}
               {userPermissions.canEdit && (
-                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       setEditingItem(item);
                       setEditDialogOpen(true);
                     }}
@@ -591,7 +593,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       setItemToDelete(item);
                       setDeleteDialogOpen(true);
                     }}
@@ -601,7 +605,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                   </Button>
                 </div>
               )}
-              
+
+              {/* Card content */}
               {item.imageUrl && (
                 <div className="aspect-square rounded-t-lg overflow-hidden">
                   <img
