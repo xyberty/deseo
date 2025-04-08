@@ -8,8 +8,10 @@ interface Reservation {
   itemId: string;
   reserverId: string;
   reserverEmail: string | null;
+  displayName: string | null;
   reservedAt: Date;
   passphrase?: string;
+  allowDisclosure: boolean;
 }
 
 export async function POST(
@@ -17,7 +19,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { itemId, reserverEmail, passphrase } = await request.json();
+    const { itemId, reserverEmail, displayName, passphrase, allowDisclosure } = await request.json();
+    const { id } = await params;
     
     if (!itemId) {
       return NextResponse.json(
@@ -52,7 +55,7 @@ export async function POST(
     
     // Check if item is already reserved
     const existingReservation = await db.collection("wishlists").findOne({
-      _id: new ObjectId(params.id),
+      _id: new ObjectId(id),
       "reservations.itemId": itemId
     });
 
@@ -64,17 +67,21 @@ export async function POST(
     }
 
     // Add reservation
+    const reservationData = {
+      itemId, 
+      reserverId,
+      reserverEmail: reserverEmail || null,
+      displayName: displayName || null,
+      passphrase: passphrase || null,
+      allowDisclosure: allowDisclosure,
+      reservedAt: new Date() 
+    };
+
     const result = await db.collection("wishlists").updateOne(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id) },
       { 
         $push: { 
-          reservations: { 
-            itemId, 
-            reserverId,
-            reserverEmail: reserverEmail || null,
-            passphrase: passphrase || null,
-            reservedAt: new Date() 
-          } 
+          reservations: reservationData
         } 
       } as any
     );
@@ -86,6 +93,12 @@ export async function POST(
       );
     }
 
+    // Verify the reservation was added
+    const updatedWishlist = await db.collection("wishlists").findOne(
+      { _id: new ObjectId(id) },
+      { projection: { reservations: 1 } }
+    );
+    
     return NextResponse.json({ 
       message: "Item reserved",
       reserverId,

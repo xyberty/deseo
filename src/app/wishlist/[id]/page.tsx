@@ -8,7 +8,6 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
-import { MagicLinkForm } from '@/app/components/MagicLinkForm';
 import { use } from 'react';
 import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -26,8 +25,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const resolvedParams = use(params);
   const [wishlist, setWishlist] = useState<Wishlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showSaveForm, setShowSaveForm] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
@@ -39,6 +38,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [itemToDelete, setItemToDelete] = useState<WishlistItem | null>(null);
   const [userReservations, setUserReservations] = useState<Reservation[]>([]);
   const [reserverEmail, setReserverEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [allowDisclosure, setAllowDisclosure] = useState(false);
   const [passphrase, setPassphrase] = useState('');
   const [reserveDialogOpen, setReserveDialogOpen] = useState(false);
   const [itemToReserve, setItemToReserve] = useState<WishlistItem | null>(null);
@@ -55,14 +56,14 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   // Add keyboard event listener for Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showSaveForm) {
-        setShowSaveForm(false);
+      if (e.key === 'Escape') {
+        setShowSettingsDialog(false);
       }
     };
 
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [showSaveForm]);
+  }, []);
   
   // Set share URL when wishlist loads
   useEffect(() => {
@@ -206,15 +207,19 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     e.preventDefault();
     if (!wishlist || !itemToReserve) return;
 
+    const reservationData = {
+      itemId: itemToReserve.id,
+      reserverEmail: reserverEmail || null,
+      displayName: displayName || null,
+      passphrase: passphrase || null,
+      allowDisclosure
+    };
+
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}/reserve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId: itemToReserve.id,
-          email: reserverEmail,
-          passphrase: passphrase
-        }),
+        body: JSON.stringify(reservationData),
       });
 
       if (!response.ok) throw new Error('Failed to reserve item');
@@ -222,6 +227,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       setReserveDialogOpen(false);
       setItemToReserve(null);
       setReserverEmail('');
+      setDisplayName('');
+      setAllowDisclosure(false);
       setPassphrase('');
       // Refresh both wishlist and user reservations
       fetchWishlist();
@@ -265,26 +272,23 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     navigator.clipboard.writeText(shareUrl);
     toast.success('Link copied to clipboard');
   };
-  
-  // Handle claiming a wishlist (converting from anonymous to authenticated)
-  const claimWishlist = async () => {
+
+  const handleDeleteWishlist = async () => {
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ claimWishlist: true }),
+        method: 'DELETE',
       });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to claim wishlist');
+        throw new Error('Failed to delete wishlist');
       }
-      
-      toast.success('Wishlist claimed successfully');
-      setShowSaveForm(false);
-      fetchWishlist();
+
+      toast.success('Wishlist deleted successfully');
+      // Redirect to home page after deletion
+      window.location.href = '/';
     } catch (error) {
       toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to claim wishlist',
+        description: error instanceof Error ? error.message : 'Failed to delete wishlist',
       });
     }
   };
@@ -309,7 +313,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold font-heading">{wishlist.title}</h1>
@@ -347,7 +351,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
             <Popover>
               <PopoverTrigger asChild>
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4" />
                   Add Item
                 </Button>
               </PopoverTrigger>
@@ -415,13 +419,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               </PopoverContent>
             </Popover>
           )}
-          
-          {/* Show "Save & Sign In" for anonymous creators, hidden for authenticated users */}
-          {!userPermissions.isOwner && (
-            <Button onClick={() => setShowSaveForm(true)}>
-              Sign In & Save
-            </Button>
-          )}
         </div>
       </div>
 
@@ -446,41 +443,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         )}
       </div>
 
-      {/* Sign in dialog for anonymous creators */}
-      {showSaveForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full relative">
-            <button
-              onClick={() => setShowSaveForm(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-            <h2 className="text-xl font-heading font-bold mb-4">Save Your Wishlist</h2>
-            <p className="text-gray-600 mb-4">
-              Enter your email to save your wishlist and get a magic link to sign in.
-            </p>
-            <MagicLinkForm onSuccess={() => {
-              claimWishlist(); // Attempt to claim the wishlist after signing in
-            }} />
-          </div>
-        </div>
-      )}
-      
       {/* Settings dialog for owners */}
       {showSettingsDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -547,6 +509,22 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                   <Button variant="outline" onClick={copyShareLink}>Copy</Button>
                 </div>
               </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-gray-500">Once you delete a wishlist, there is no going back. Please be certain.</p>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => {
+                      setShowSettingsDialog(false);
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    Delete Wishlist
+                  </Button>
+                </div>
+              </div>
               
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>
@@ -560,6 +538,29 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
       )}
+
+      {/* Delete Wishlist Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Wishlist</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete this wishlist? This action cannot be undone.
+              All items and reservations will be permanently deleted.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteWishlist}>
+              Delete Wishlist
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Items grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -650,17 +651,44 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                           <span>You</span>
                         </div>
                       ) : (
-                        <Badge variant="secondary" className="text-xs">
-                          Reserved
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            Reserved
+                          </Badge>
+                          {userPermissions.isOwner && (
+                            <div className="text-xs text-gray-500">
+                              {(() => {
+                                const reservation = wishlist.reservations?.find(r => r.itemId === item.id);
+                                console.log('Found reservation for item:', item.id, {
+                                  reservation,
+                                  isOwner: userPermissions.isOwner,
+                                  allowDisclosure: reservation?.allowDisclosure,
+                                  displayName: reservation?.displayName,
+                                  reserverEmail: reservation?.reserverEmail
+                                });
+                                
+                                if (reservation?.allowDisclosure === true) {
+                                  const identity = reservation.displayName || reservation.reserverEmail || 'Anonymous';
+                                  console.log('Showing identity:', identity);
+                                  return identity;
+                                }
+                                
+                                console.log('Not showing identity - allowDisclosure:', reservation?.allowDisclosure);
+                                return null;
+                              })()}
+                            </div>
+                          )}
+                        </div>
                       )
                     ) : (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setItemToReserve(item);
-                          setReserveDialogOpen(true);
+                          if (!wishlist.reservations?.some(r => r.itemId === item.id)) {
+                            setItemToReserve(item);
+                            setReserveDialogOpen(true);
+                          }
                         }}
                         className="h-8"
                       >
@@ -768,13 +796,28 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
           <form onSubmit={handleReserveItem}>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="reserver-email">Your Email</Label>
+                <Label htmlFor="reserver-email">Your Email (optional)</Label>
                 <Input
                   id="reserver-email"
                   type="email"
                   value={reserverEmail}
                   onChange={(e) => setReserverEmail(e.target.value)}
-                  required
+                  placeholder="Enter your email to receive updates"
+                />
+                <p className="text-xs text-gray-500">
+                  {allowDisclosure && !reserverEmail && !displayName ? 
+                    "Please provide either an email or display name if you want to be identified" : 
+                    "Your email will only be visible to the wishlist creator if you allow disclosure"}
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="display-name">Display Name (optional)</Label>
+                <Input
+                  id="display-name"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="How you'd like to be identified"
                 />
               </div>
               <div className="grid gap-2">
@@ -787,12 +830,27 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                   placeholder="A secret word to identify your reservation"
                 />
               </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="allow-disclosure"
+                  checked={allowDisclosure}
+                  onChange={(e) => setAllowDisclosure(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="allow-disclosure" className="text-sm">
+                  Allow the creator to see my identity
+                </Label>
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setReserveDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button 
+                type="submit"
+                disabled={allowDisclosure && !reserverEmail && !displayName}
+              >
                 Reserve
               </Button>
             </div>

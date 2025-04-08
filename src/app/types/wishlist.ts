@@ -14,8 +14,10 @@ export interface WishlistItem {
     itemId: string;
     reserverId: string;
     reserverEmail: string | null;
+    displayName?: string;
     passphrase?: string;
     reservedAt: Date;
+    allowDisclosure: boolean;
   }
   
   export interface Wishlist {

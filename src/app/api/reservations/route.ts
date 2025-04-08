@@ -59,16 +59,21 @@ export async function GET(request: Request) {
           title: 1,
           items: 1,
           reservations: {
-            $filter: {
-              input: "$reservations",
-              as: "reservation",
-              cond: {
-                $or: [
-                  { $eq: ["$$reservation.reserverId", reserverId] },
-                  { $eq: ["$$reservation.reserverEmail", userId] }
-                ]
-              }
-            }
+            $ifNull: [
+              {
+                $filter: {
+                  input: "$reservations",
+                  as: "reservation",
+                  cond: {
+                    $or: [
+                      { $eq: ["$$reservation.reserverId", reserverId] },
+                      { $eq: ["$$reservation.reserverEmail", userId] }
+                    ]
+                  }
+                }
+              },
+              []
+            ]
           }
         }
       },
@@ -81,7 +86,16 @@ export async function GET(request: Request) {
               input: "$items",
               as: "item",
               cond: {
-                $in: ["$$item.id", "$reservations.itemId"]
+                $in: [
+                  "$$item.id",
+                  {
+                    $map: {
+                      input: "$reservations",
+                      as: "reservation",
+                      in: "$$reservation.itemId"
+                    }
+                  }
+                ]
               }
             }
           }
