@@ -3,14 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/app/lib/utils';
+import { Button } from '@/app/components/ui/button';
+import { Plus } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
 
   const routes = [
     { href: '/', label: 'Home' },
-    { href: '/create', label: 'Create Wishlist' },
-    { href: '/dashboard', label: 'Dashboard' },
+    // { href: '/create', label: 'Create Wishlist' },
+    // { href: '/dashboard', label: 'Dashboard' },
   ];
 
   return (
@@ -39,6 +41,12 @@ export function Navbar() {
                 {route.label}
               </Link>
             ))}
+            <Link href="/create">
+              <Button variant="outline">
+                <Plus className="h-4 w-4" />
+                Create Wishlist
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
