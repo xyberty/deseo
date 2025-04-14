@@ -45,8 +45,8 @@ export default function CreateWishlist() {
   };
 
   return (
-    <main className="container mx-auto p-4 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">Create Your Wishlist</h1>
+    <div className="container mx-auto p-4 max-w-2xl">
+      <h1 className="text-2xl font-bold mb-6">Create Wishlist</h1>
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
@@ -78,6 +78,6 @@ export default function CreateWishlist() {
           {isLoading ? 'Creating...' : 'Create Wishlist'}
         </Button>
       </form>
-    </main>
+    </div>
   );
 } 

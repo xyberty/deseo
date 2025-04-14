@@ -26,12 +26,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${openSans.variable} ${montserrat.variable}`}>
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <div className="relative flex min-h-screen flex-col" data-slot="root">
-          <Navbar />
-          <main className="flex-1" data-slot="main">
-            {children}
-          </main>
+      <body className="bg-background font-sans antialiased">
+        <div className="flex min-h-screen flex-col items-center" data-slot="root">
+          <div className="container">
+            <Navbar />
+            <main className="flex-1 lg:max-w-4xl max-w-full mx-auto " data-slot="main">
+              {children}
+            </main>
+          </div>
           <Toaster />
         </div>
       </body>
