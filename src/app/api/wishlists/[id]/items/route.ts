@@ -35,7 +35,7 @@ export async function POST(
       {
         $push: { items: newItem },
         $set: { updatedAt: new Date() },
-      } as any
+      } as any // eslint-disable-line @typescript-eslint/no-explicit-any
     );
 
     if (result.matchedCount === 0) {

@@ -55,7 +55,7 @@ export default function Home() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label htmlFor="title" className="text-sm font-medium">
-              What's your wishlist for?
+              What&apos;s your wishlist for?
             </label>
             <Input
               id="title"
@@ -74,7 +74,7 @@ export default function Home() {
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="A list of things I'd love to receive..."
+              placeholder="A list of things I&apos;d love to receive..."
             />
           </div>
 

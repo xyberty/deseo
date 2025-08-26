@@ -25,7 +25,7 @@ async function getUserIdFromToken(): Promise<string | null> {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const db = await getDb();
@@ -110,11 +110,11 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const db = await getDb();
-    const wishlistId = params.id;
+    const { id: wishlistId } = await params;
     const body = await request.json();
     
     // Check for edit permissions
@@ -186,7 +186,13 @@ export async function PATCH(
     }
     
     // Regular update operation
-    const updateData: any = {
+    const updateData: {
+      updatedAt: Date;
+      title?: string;
+      description?: string;
+      isPublic?: boolean;
+      allowEdits?: boolean;
+    } = {
       updatedAt: new Date(),
     };
     
@@ -242,11 +248,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const db = await getDb();
-    const wishlistId = params.id;
+    const { id: wishlistId } = await params;
     
     // Check for delete permissions (only owner can delete)
     const userId = await getUserIdFromToken();

@@ -21,7 +21,7 @@ async function getUserIdFromToken(): Promise<string | null> {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const userId = await getUserIdFromToken();
     const db = await getDb();
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       .map(cookie => cookie.value);
     
     // Build the query to find shared wishlists
-    const query: any = {
+    const query = {
       isPublic: true,
       $nor: [
         // Not owned by authenticated user

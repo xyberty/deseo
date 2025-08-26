@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/app/lib/mongodb';
-import { ObjectId } from 'mongodb';
-import type { Wishlist } from '@/app/types/wishlist';
 import { cookies } from 'next/headers';
 import { nanoid } from 'nanoid';
 import { verifyToken } from '@/app/lib/jwt';
@@ -50,7 +48,7 @@ export async function POST(request: Request) {
       updatedAt: new Date(),
     };
 
-    const result = await db.collection('wishlists').insertOne(wishlist as any);
+    const result = await db.collection('wishlists').insertOne(wishlist);
     
     // Create response with wishlist data
     const response = NextResponse.json({
@@ -81,7 +79,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const db = await getDb();
     
@@ -96,7 +94,7 @@ export async function GET(request: Request) {
       .map(cookie => cookie.value);
     
     // Build the query to find wishlists
-    const query: any = {
+    const query = {
       $or: [
         // Wishlists owned by authenticated user
         ...(userId ? [{ userId }] : []),

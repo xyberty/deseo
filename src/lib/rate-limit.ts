@@ -14,10 +14,9 @@ const store: RateLimitStore = {};
 
 export function rateLimit(options: RateLimitOptions) {
   return {
-    check: (res: any, limit: number, token: string) =>
+    check: (limit: number, token: string) =>
       new Promise((resolve, reject) => {
         const now = Date.now();
-        const windowStart = now - options.interval;
 
         // Initialize or get existing token data
         if (!store[token]) {
@@ -43,14 +42,6 @@ export function rateLimit(options: RateLimitOptions) {
 
         // Decrement tokens
         store[token].tokens--;
-
-        // Set rate limit headers
-        res.setHeader("X-RateLimit-Limit", limit);
-        res.setHeader("X-RateLimit-Remaining", store[token].tokens);
-        res.setHeader(
-          "X-RateLimit-Reset",
-          store[token].lastReset + options.interval
-        );
 
         resolve(true);
       }),

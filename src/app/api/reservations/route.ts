@@ -27,7 +27,7 @@ async function getReserverId(): Promise<string | null> {
   return cookieStore.get('reserverId')?.value || null;
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Get authentication info
     const userId = await getUserIdFromToken();

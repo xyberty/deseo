@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import type { Wishlist } from '@/app/types/wishlist';
+import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
 import { Button } from '@/app/components/ui/button';
 import { Gift, PenSquare, List, Clock } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
@@ -13,7 +13,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [createdWishlists, setCreatedWishlists] = useState<Wishlist[]>([]);
   const [sharedWishlists, setSharedWishlists] = useState<Wishlist[]>([]);
-  const [reservations, setReservations] = useState<{wishlistId: string, title: string, items: any[]}[]>([]);
+  const [reservations, setReservations] = useState<{wishlistId: string, title: string, items: WishlistItem[]}[]>([]);
   
   useEffect(() => {
     fetchData();

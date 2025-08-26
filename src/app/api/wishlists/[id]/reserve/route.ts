@@ -16,7 +16,7 @@ interface Reservation {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { itemId, reserverEmail, displayName, passphrase, allowDisclosure } = await request.json();
@@ -78,7 +78,7 @@ export async function POST(
         $push: { 
           reservations: reservationData
         } 
-      } as any
+      } as any // eslint-disable-line @typescript-eslint/no-explicit-any
     );
     
     if (result.matchedCount === 0) {
@@ -97,7 +97,7 @@ export async function POST(
     }
 
     // Verify the reservation was added
-    const updatedWishlist = await db.collection("wishlists").findOne(
+    await db.collection("wishlists").findOne(
       { _id: new ObjectId(id) },
       { projection: { reservations: 1 } }
     );
@@ -126,7 +126,7 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies();

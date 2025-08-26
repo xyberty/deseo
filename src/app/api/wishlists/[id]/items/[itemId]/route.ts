@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
-import { WishlistItem } from "@/app/types/wishlist";
+import type { WishlistItem } from "@/app/types/wishlist";
 
 export async function PUT(
   request: NextRequest,
@@ -33,9 +33,9 @@ export async function PUT(
     const wishlist = await db.collection("wishlists").findOne({ _id: wishlistId });
     console.log('Found wishlist:', wishlist ? 'yes' : 'no');
     if (wishlist) {
-      console.log('Items in wishlist:', wishlist.items.map((item: any) => item.id));
+      console.log('Items in wishlist:', wishlist.items.map((item: WishlistItem) => item.id));
       console.log('Looking for item with ID:', itemId);
-      const itemExists = wishlist.items.some((item: any) => item.id === itemId);
+      const itemExists = wishlist.items.some((item: WishlistItem) => item.id === itemId);
       console.log('Item exists in wishlist:', itemExists);
     }
 
@@ -72,7 +72,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   const { id, itemId } = await params;
 
@@ -90,7 +90,7 @@ export async function DELETE(
       { 
         $pull: { items: { id: itemId } },
         $set: { updatedAt: new Date() }
-      } as any
+      } as any // eslint-disable-line @typescript-eslint/no-explicit-any
     );
 
     if (result.matchedCount === 0) {

@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/app/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
 import { use } from 'react';
 import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
@@ -48,11 +48,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [allowEdits, setAllowEdits] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   
-  useEffect(() => {
-    fetchWishlist();
-    fetchUserReservations();
-  }, [resolvedParams.id]);
-  
   // Add keyboard event listener for Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -78,9 +73,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       setIsPublic(wishlist.isPublic);
       setAllowEdits(wishlist.allowEdits);
     }
-  }, [wishlist]);
+  }, [wishlist, resolvedParams.id]);
 
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     setIsLoading(true);
     try {
       // Get the share token from the URL if it exists
@@ -103,9 +98,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [resolvedParams.id]);
 
-  const fetchUserReservations = async () => {
+  const fetchUserReservations = useCallback(async () => {
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}/reserve`);
       if (!response.ok) throw new Error('Failed to fetch reservations');
@@ -114,8 +109,14 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     } catch (error) {
       console.error('Error fetching user reservations:', error);
     }
-  };
-
+    }, [resolvedParams.id]);
+  
+  // Initial data fetch
+  useEffect(() => {
+    fetchWishlist();
+    fetchUserReservations();
+  }, [fetchWishlist, fetchUserReservations]);
+  
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!wishlist) return;
@@ -306,7 +307,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Wishlist not found</h1>
-          <p className="text-gray-500 mt-2">The wishlist you're looking for doesn't exist or you don't have permission to view it.</p>
+          <p className="text-gray-500 mt-2">The wishlist you&apos;re looking for doesn&apos;t exist or you don&apos;t have permission to view it.</p>
         </div>
       </div>
     );
@@ -774,7 +775,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
             <DialogTitle>Delete Item</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p>Are you sure you want to delete "{itemToDelete?.name}"? This action cannot be undone.</p>
+            <p>Are you sure you want to delete &quot;{itemToDelete?.name}&quot;? This action cannot be undone.</p>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>

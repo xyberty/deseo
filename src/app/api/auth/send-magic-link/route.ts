@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/app/lib/mongodb';
 import { signToken } from '@/app/lib/jwt';
 import { sendMagicLink } from '@/app/lib/email';
 import { rateLimit } from '@/app/lib/rate-limit';
@@ -14,7 +13,7 @@ export async function POST(request: Request) {
   try {
     // Apply rate limiting
     await limiter.check(5, "send-magic-link");
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Too many requests" },
       { status: 429 }

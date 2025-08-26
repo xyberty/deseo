@@ -9,7 +9,7 @@ import type { WishlistItem } from '../types/wishlist';
 export default function CreateWishlist() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [items, setItems] = useState<WishlistItem[]>([]);
+  const [items] = useState<WishlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
