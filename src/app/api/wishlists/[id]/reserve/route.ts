@@ -29,26 +29,13 @@ export async function POST(
       );
     }
 
-    // Get or create reserverId from cookie
+    // Get or create reserverId from cookie, but do NOT return early.
     const cookieStore = await cookies();
     let reserverId = cookieStore.get('reserverId')?.value;
-    
+    let shouldSetCookie = false;
     if (!reserverId) {
       reserverId = nanoid();
-      // Set cookie with 1 year expiry
-      const response = NextResponse.json({ 
-        message: "Item reserved",
-        reserverId,
-        passphrase: passphrase || null
-      });
-      
-      response.cookies.set('reserverId', reserverId, {
-        expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        path: '/',
-        sameSite: 'lax'
-      });
-      
-      return response;
+      shouldSetCookie = true;
     }
     
     const db = await getDb();
@@ -60,10 +47,18 @@ export async function POST(
     });
 
     if (existingReservation) {
-      return NextResponse.json(
+      const conflictResponse = NextResponse.json(
         { error: "Item is already reserved" },
         { status: 409 }
       );
+      if (shouldSetCookie && reserverId) {
+        conflictResponse.cookies.set('reserverId', reserverId, {
+          expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          path: '/',
+          sameSite: 'lax'
+        });
+      }
+      return conflictResponse;
     }
 
     // Add reservation
@@ -87,10 +82,18 @@ export async function POST(
     );
     
     if (result.matchedCount === 0) {
-      return NextResponse.json(
+      const notFoundResponse = NextResponse.json(
         { error: "Wishlist not found" },
         { status: 404 }
       );
+      if (shouldSetCookie && reserverId) {
+        notFoundResponse.cookies.set('reserverId', reserverId, {
+          expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          path: '/',
+          sameSite: 'lax'
+        });
+      }
+      return notFoundResponse;
     }
 
     // Verify the reservation was added
@@ -99,11 +102,19 @@ export async function POST(
       { projection: { reservations: 1 } }
     );
     
-    return NextResponse.json({ 
+    const successResponse = NextResponse.json({ 
       message: "Item reserved",
       reserverId,
       passphrase: passphrase || null
     });
+    if (shouldSetCookie && reserverId) {
+      successResponse.cookies.set('reserverId', reserverId, {
+        expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        path: '/',
+        sameSite: 'lax'
+      });
+    }
+    return successResponse;
   } catch (error) {
     console.error("Error reserving item:", error);
     return NextResponse.json(
