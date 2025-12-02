@@ -14,8 +14,9 @@ import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
+import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
-import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, getCurrencyByAlpha3 } from '@/app/lib/currencies';
+import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
 
 // Define user permissions interface
 interface UserPermissions {
@@ -670,11 +671,13 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
               {/* Card content */}
               {item.imageUrl && (
-                <div className="aspect-square rounded-t-lg overflow-hidden">
-                  <img
+                <div className="aspect-square rounded-t-lg overflow-hidden relative">
+                  <Image
                     src={item.imageUrl}
                     alt={item.name}
-                    className="p-4 w-full h-full object-cover"
+                    fill
+                    className="p-4 object-cover"
+                    unoptimized
                   />
                 </div>
               )}
