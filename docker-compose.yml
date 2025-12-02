@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  deseo-app:
+    build:
+      context: .
+      args:
+        - MONGODB_URI=${MONGODB_URI}
+        - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+        - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - "3001:3000"
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_DB=deseos
+    restart: unless-stopped
+    networks:
+      - reverse-proxy-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
+    volumes:
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - deseo-app
+    restart: unless-stopped
+
+networks:
+  reverse-proxy-network:
+    external: true 
