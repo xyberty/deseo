@@ -40,6 +40,41 @@ export async function POST(
     
     const db = await getDb();
     
+    // Check if wishlist exists and is not archived
+    const wishlist = await db.collection("wishlists").findOne({
+      _id: new ObjectId(id),
+    });
+    
+    if (!wishlist) {
+      const notFoundResponse = NextResponse.json(
+        { error: "Wishlist not found" },
+        { status: 404 }
+      );
+      if (shouldSetCookie && reserverId) {
+        notFoundResponse.cookies.set('reserverId', reserverId, {
+          expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          path: '/',
+          sameSite: 'lax'
+        });
+      }
+      return notFoundResponse;
+    }
+    
+    if (wishlist.isArchived) {
+      const archivedResponse = NextResponse.json(
+        { error: "Cannot reserve items in an archived wishlist" },
+        { status: 403 }
+      );
+      if (shouldSetCookie && reserverId) {
+        archivedResponse.cookies.set('reserverId', reserverId, {
+          expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          path: '/',
+          sameSite: 'lax'
+        });
+      }
+      return archivedResponse;
+    }
+    
     // Check if item is already reserved
     const existingReservation = await db.collection("wishlists").findOne({
       _id: new ObjectId(id),

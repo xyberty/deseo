@@ -97,8 +97,8 @@ export async function GET() {
       .filter(cookie => cookie.name.startsWith('owner_'))
       .map(cookie => cookie.value);
     
-    // Build the query to find wishlists
-    const query = {
+    // Build the query to find wishlists (exclude archived by default)
+    const baseQuery = {
       $or: [
         // Wishlists owned by authenticated user
         ...(userId ? [{ userId }] : []),
@@ -107,15 +107,42 @@ export async function GET() {
       ]
     };
     
-    // Get wishlists matching the query
+    // Get active wishlists (exclude archived)
+    const activeQuery = {
+      $and: [
+        baseQuery,
+        {
+          $or: [
+            { isArchived: { $exists: false } },
+            { isArchived: false }
+          ]
+        }
+      ]
+    };
+    
     const createdWishlists = await db
       .collection('wishlists')
-      .find(query)
+      .find(activeQuery)
+      .sort({ updatedAt: -1 })
+      .toArray();
+    
+    // Get archived wishlists
+    const archivedQuery = {
+      $and: [
+        baseQuery,
+        { isArchived: true }
+      ]
+    };
+    
+    const archivedWishlists = await db
+      .collection('wishlists')
+      .find(archivedQuery)
       .sort({ updatedAt: -1 })
       .toArray();
       
     return NextResponse.json({
       created: createdWishlists,
+      archived: archivedWishlists,
     });
   } catch (error) {
     console.error('Error fetching wishlists:', error);

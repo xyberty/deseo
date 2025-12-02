@@ -52,6 +52,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [allowEdits, setAllowEdits] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [listCurrency, setListCurrency] = useState(DEFAULT_CURRENCY);
+  const [isArchived, setIsArchived] = useState(false);
   
   // Add keyboard event listener for Escape key
   useEffect(() => {
@@ -77,6 +78,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       }
       setIsPublic(wishlist.isPublic);
       setAllowEdits(wishlist.allowEdits);
+      setIsArchived(wishlist.isArchived || false);
       const currentListCurrency = wishlist.currency || DEFAULT_CURRENCY;
       setListCurrency(currentListCurrency);
       // Update new item currency to match list currency when wishlist loads
@@ -287,6 +289,31 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     }
   };
   
+  // Archive/Unarchive wishlist
+  const handleArchiveToggle = async () => {
+    try {
+      const response = await fetch(`/api/wishlists/${resolvedParams.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          isArchived: !isArchived
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update archive status');
+      }
+      
+      toast.success(isArchived ? 'Wishlist unarchived' : 'Wishlist archived');
+      fetchWishlist();
+      setShowSettingsDialog(false);
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'Failed to update archive status',
+      });
+    }
+  };
+  
   // Copy share link to clipboard
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -366,8 +393,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
             </>
           )}
           
-          {/* Show "Add Item" button only for users with edit permission */}
-          {userPermissions.canEdit && (
+          {/* Show "Add Item" button only for users with edit permission and not archived */}
+          {userPermissions.canEdit && !wishlist.isArchived && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button>
@@ -462,22 +489,30 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
       {/* Privacy indicator */}
       <div className="mb-4 flex items-center gap-2">
-        {wishlist.isPublic ? (
-          <div className="flex items-center text-sm text-gray-500">
-            <Globe className="h-4 w-4 mr-1" />
-            Public wishlist
-          </div>
-        ) : (
-          <div className="flex items-center text-sm text-gray-500">
-            <Lock className="h-4 w-4 mr-1" />
-            Private wishlist
-          </div>
-        )}
-        
-        {wishlist.allowEdits && (
-          <Badge variant="outline" className="text-xs">
-            Anyone can edit
+        {wishlist.isArchived ? (
+          <Badge variant="secondary" className="text-xs">
+            Archived
           </Badge>
+        ) : (
+          <>
+            {wishlist.isPublic ? (
+              <div className="flex items-center text-sm text-gray-500">
+                <Globe className="h-4 w-4 mr-1" />
+                Public wishlist
+              </div>
+            ) : (
+              <div className="flex items-center text-sm text-gray-500">
+                <Lock className="h-4 w-4 mr-1" />
+                Private wishlist
+              </div>
+            )}
+            
+            {wishlist.allowEdits && (
+              <Badge variant="outline" className="text-xs">
+                Anyone can edit
+              </Badge>
+            )}
+          </>
         )}
       </div>
 
@@ -505,7 +540,14 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
-            <h2 className="text-xl font-heading font-bold mb-4">Wishlist Settings</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-heading font-bold">Wishlist Settings</h2>
+              {isArchived && (
+                <Badge variant="secondary" className="text-xs">
+                  Archived
+                </Badge>
+              )}
+            </div>
             
             <div className="space-y-6">
               <div className="space-y-4">
@@ -514,24 +556,26 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="public-toggle" className="font-medium">Public Wishlist</Label>
-                    <p className="text-sm text-gray-500">Anyone with the link can view</p>
+                    <p className="text-sm text-gray-500">Anyone can view using just the wishlist ID.</p>
                   </div>
                   <input
                     type="checkbox"
                     checked={isPublic}
                     onChange={(e) => setIsPublic(e.target.checked)}
+                    disabled={isArchived}
                   />
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="edits-toggle" className="font-medium">Allow Edits</Label>
-                    <p className="text-sm text-gray-500">Anyone can add or edit items</p>
+                    <p className="text-sm text-gray-500">Anyone with access can add or edit items</p>
                   </div>
                   <input
                     type="checkbox"
                     checked={allowEdits}
                     onChange={(e) => setAllowEdits(e.target.checked)}
+                    disabled={isArchived}
                   />
                 </div>
               </div>
@@ -540,7 +584,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 <h3 className="text-lg font-medium">Currency</h3>
                 <div className="grid gap-2">
                   <Label htmlFor="currency-select">Default Currency</Label>
-                  <Select value={listCurrency} onValueChange={setListCurrency}>
+                  <Select value={listCurrency} onValueChange={setListCurrency} disabled={isArchived}>
                     <SelectTrigger id="currency-select">
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
@@ -563,8 +607,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                     value={shareUrl} 
                     readOnly 
                     onClick={(e) => e.currentTarget.select()}
+                    disabled={isArchived}
                   />
-                  <Button variant="outline" onClick={copyShareLink}>Copy</Button>
+                  <Button variant="outline" onClick={copyShareLink} disabled={isArchived}>Copy</Button>
                 </div>
               </div>
 
@@ -588,7 +633,13 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>
                   Cancel
                 </Button>
-                <Button onClick={updatePrivacySettings}>
+                <Button 
+                  variant={isArchived ? "default" : "outline"}
+                  onClick={handleArchiveToggle}
+                >
+                  {isArchived ? 'Unarchive' : 'Archive'}
+                </Button>
+                <Button onClick={updatePrivacySettings} disabled={isArchived}>
                   Save Changes
                 </Button>
               </div>
@@ -633,8 +684,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         ) : (
           wishlist.items.map((item) => (
             <Card key={item.id} className="group relative gap-0 py-0">
-              {/* Show edit/delete buttons only for users with edit permission */}
-              {userPermissions.canEdit && (
+              {/* Show edit/delete buttons only for users with edit permission and not archived */}
+              {userPermissions.canEdit && !wishlist.isArchived && (
                 <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
                   <Button
                     variant="outline"
@@ -747,20 +798,22 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                         </div>
                       )
                     ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (!wishlist.reservations?.some(r => r.itemId === item.id)) {
-                            setItemToReserve(item);
-                            setReserveDialogOpen(true);
-                          }
-                        }}
-                        className="h-8"
-                      >
-                        <Gift className="h-4 w-4 mr-2" />
-                        Reserve
-                      </Button>
+                      !wishlist.isArchived && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (!wishlist.reservations?.some(r => r.itemId === item.id)) {
+                              setItemToReserve(item);
+                              setReserveDialogOpen(true);
+                            }
+                          }}
+                          className="h-8"
+                        >
+                          <Gift className="h-4 w-4 mr-2" />
+                          Reserve
+                        </Button>
+                      )
                     )}
                   </div>
                 </div>

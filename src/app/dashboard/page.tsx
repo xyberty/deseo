@@ -6,14 +6,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
-import { Plus, Gift, PenSquare, List, Clock } from 'lucide-react';
+import { Plus, Gift, PenSquare, List, Clock, ChevronDown, ChevronUp, Archive } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [createdWishlists, setCreatedWishlists] = useState<Wishlist[]>([]);
+  const [archivedWishlists, setArchivedWishlists] = useState<Wishlist[]>([]);
   const [sharedWishlists, setSharedWishlists] = useState<Wishlist[]>([]);
   const [reservations, setReservations] = useState<{wishlistId: string, title: string, items: WishlistItem[]}[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
   
   useEffect(() => {
     fetchData();
@@ -28,6 +30,7 @@ export default function DashboardPage() {
       
       if (createdResponse.ok) {
         setCreatedWishlists(createdData.created || []);
+        setArchivedWishlists(createdData.archived || []);
       }
       
       // Fetch wishlists shared with the user
@@ -62,9 +65,10 @@ export default function DashboardPage() {
   }
 
   const hasCreatedWishlists = createdWishlists.length > 0;
+  const hasArchivedWishlists = archivedWishlists.length > 0;
   const hasSharedWishlists = sharedWishlists.length > 0;
   const hasReservations = reservations.length > 0;
-  const hasAnyContent = hasCreatedWishlists || hasSharedWishlists || hasReservations;
+  const hasAnyContent = hasCreatedWishlists || hasArchivedWishlists || hasSharedWishlists || hasReservations;
 
   return (
     <div className="container mx-auto p-4">
@@ -96,47 +100,102 @@ export default function DashboardPage() {
       )}
       
       {/* My Wishlists Section */}
-      {hasCreatedWishlists && (
+      {(hasCreatedWishlists || hasArchivedWishlists) && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
             <PenSquare className="h-5 w-5" />
             <h2 className="text-xl font-bold">My Wishlists</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {createdWishlists.map(wishlist => (
-              <Card key={wishlist._id} className="overflow-hidden">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-lg">{wishlist.title}</CardTitle>
-                  {wishlist.description && (
-                    <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent className="p-4 pt-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <List className="h-4 w-4" />
-                    <span>{wishlist.items.length} items</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {wishlist.isPublic && (
-                      <Badge variant="outline">Public</Badge>
+          
+          {/* Active Wishlists */}
+          {hasCreatedWishlists && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {createdWishlists.map(wishlist => (
+                <Card key={wishlist._id} className="overflow-hidden">
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-lg">{wishlist.title}</CardTitle>
+                    {wishlist.description && (
+                      <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
                     )}
-                    {wishlist.allowEdits && (
-                      <Badge variant="outline">Editable</Badge>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter className="p-4 pt-0 border-t flex justify-between">
-                  <div className="text-xs text-gray-500">
-                    <Clock className="h-3 w-3 inline-block mr-1" />
-                    Created {new Date(wishlist.createdAt).toLocaleDateString()}
-                  </div>
-                  <Link href={`/wishlist/${wishlist._id}`}>
-                    <Button size="sm">View</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <List className="h-4 w-4" />
+                      <span>{wishlist.items.length} items</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {wishlist.isPublic && (
+                        <Badge variant="outline">Public</Badge>
+                      )}
+                      {wishlist.allowEdits && (
+                        <Badge variant="outline">Editable</Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-4 pt-0 border-t flex justify-between">
+                    <div className="text-xs text-gray-500">
+                      <Clock className="h-3 w-3 inline-block mr-1" />
+                      Created {new Date(wishlist.createdAt).toLocaleDateString()}
+                    </div>
+                    <Link href={`/wishlist/${wishlist._id}`}>
+                      <Button size="sm">View</Button>
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+          
+          {/* Archived Wishlists Section */}
+          {hasArchivedWishlists && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+              >
+                <Archive className="h-4 w-4" />
+                <span className="font-medium">Archived Wishlists ({archivedWishlists.length})</span>
+                {showArchived ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+              
+              {showArchived && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {archivedWishlists.map(wishlist => (
+                    <Card key={wishlist._id} className="overflow-hidden opacity-75">
+                      <CardHeader className="p-4 pb-2">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">{wishlist.title}</CardTitle>
+                          <Badge variant="secondary" className="text-xs">Archived</Badge>
+                        </div>
+                        {wishlist.description && (
+                          <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
+                        )}
+                      </CardHeader>
+                      <CardContent className="p-4 pt-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <List className="h-4 w-4" />
+                          <span>{wishlist.items.length} items</span>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="p-4 pt-0 border-t flex justify-between">
+                        <div className="text-xs text-gray-500">
+                          <Clock className="h-3 w-3 inline-block mr-1" />
+                          Created {new Date(wishlist.createdAt).toLocaleDateString()}
+                        </div>
+                        <Link href={`/wishlist/${wishlist._id}`}>
+                          <Button size="sm" variant="outline">View</Button>
+                        </Link>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       

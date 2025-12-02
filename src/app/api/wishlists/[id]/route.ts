@@ -70,22 +70,35 @@ export async function GET(
     const url = new URL(request.url);
     const shareToken = url.searchParams.get('token');
     
-    // Determine if the user has edit rights
-    const canEdit = 
+    // Check if user is the owner
+    const isOwner = (userId && wishlist.userId === userId) || 
+      (!userId && wishlist.ownerToken && ownerTokenCookie === wishlist.ownerToken);
+    
+    // If archived, only owner can view
+    if (wishlist.isArchived && !isOwner) {
+      return NextResponse.json(
+        { error: 'This wishlist has been archived' },
+        { status: 403 }
+      );
+    }
+    
+    // Determine if the user has edit rights (archived lists cannot be edited)
+    const canEdit = !wishlist.isArchived && (
       // Authenticated user is the creator
       (userId && wishlist.userId === userId) ||
       // Anonymous creator with valid owner token
       (!userId && wishlist.ownerToken && ownerTokenCookie === wishlist.ownerToken) ||
       // Public editable wishlist
-      (wishlist.allowEdits);
+      (wishlist.allowEdits)
+    );
       
     // Determine if user can view
     const canView = 
       canEdit || 
-      wishlist.isPublic ||
-      (shareToken && shareToken === wishlist.shareToken);
+      (wishlist.isPublic && !wishlist.isArchived) ||
+      (shareToken && shareToken === wishlist.shareToken && !wishlist.isArchived);
       
-    if (!canView) {
+    if (!canView && !isOwner) {
       return NextResponse.json(
         { error: 'You do not have permission to view this wishlist' },
         { status: 403 }
@@ -98,8 +111,7 @@ export async function GET(
       _id: wishlist._id.toString(),
       userPermissions: {
         canEdit,
-        isOwner: (userId && wishlist.userId === userId) || 
-                (!userId && wishlist.ownerToken && ownerTokenCookie === wishlist.ownerToken),
+        isOwner,
       }
     });
   } catch (error) {
@@ -188,6 +200,18 @@ export async function PATCH(
       });
     }
     
+    // Check if user is the owner
+    const isOwner = (userId && wishlist.userId === userId) || 
+      (!userId && wishlist.ownerToken && ownerTokenCookie === wishlist.ownerToken);
+    
+    // Only owner can archive/unarchive
+    if (body.isArchived !== undefined && !isOwner) {
+      return NextResponse.json(
+        { error: 'Only the wishlist owner can archive/unarchive this wishlist' },
+        { status: 403 }
+      );
+    }
+    
     // Regular update operation
     const updateData: {
       updatedAt: Date;
@@ -196,6 +220,8 @@ export async function PATCH(
       currency?: string;
       isPublic?: boolean;
       allowEdits?: boolean;
+      isArchived?: boolean;
+      shareToken?: string;
     } = {
       updatedAt: new Date(),
     };
@@ -205,14 +231,28 @@ export async function PATCH(
     if (body.currency !== undefined) updateData.currency = body.currency;
     if (body.isPublic !== undefined) updateData.isPublic = body.isPublic;
     if (body.allowEdits !== undefined) updateData.allowEdits = body.allowEdits;
+    if (body.isArchived !== undefined) {
+      updateData.isArchived = body.isArchived;
+      // When unarchiving, reset sharing options to private and regenerate share token
+      if (body.isArchived === false) {
+        updateData.isPublic = false;
+        updateData.allowEdits = false;
+        updateData.shareToken = nanoid(32); // Regenerate share token for security
+      }
+    }
     
     // Only the actual owner can change these settings
-    const isOwner = (userId && wishlist.userId === userId) || 
-      (!userId && wishlist.ownerToken && ownerTokenCookie === wishlist.ownerToken);
-      
     if (!isOwner && (body.isPublic !== undefined || body.allowEdits !== undefined)) {
       return NextResponse.json(
         { error: 'Only the wishlist owner can change privacy settings' },
+        { status: 403 }
+      );
+    }
+    
+    // Prevent editing archived wishlists (except for archive/unarchive operations)
+    if (wishlist.isArchived && body.isArchived === undefined) {
+      return NextResponse.json(
+        { error: 'Cannot edit an archived wishlist. Please unarchive it first.' },
         { status: 403 }
       );
     }

@@ -32,6 +32,19 @@ export async function PUT(
     const wishlistId = new ObjectId(id);
     const wishlist = await db.collection("wishlists").findOne({ _id: wishlistId });
     console.log('Found wishlist:', wishlist ? 'yes' : 'no');
+    
+    if (!wishlist) {
+      return NextResponse.json({ error: "Wishlist not found" }, { status: 404 });
+    }
+    
+    // Check if wishlist is archived
+    if (wishlist.isArchived) {
+      return NextResponse.json(
+        { error: 'Cannot edit items in an archived wishlist. Please unarchive it first.' },
+        { status: 403 }
+      );
+    }
+    
     if (wishlist) {
       console.log('Items in wishlist:', wishlist.items.map((item: WishlistItem) => item.id));
       console.log('Looking for item with ID:', itemId);
@@ -86,6 +99,26 @@ export async function DELETE(
 
   try {
     const db = await getDb();
+    
+    // Check if wishlist is archived
+    const wishlist = await db.collection('wishlists').findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!wishlist) {
+      return NextResponse.json(
+        { error: 'Wishlist not found' },
+        { status: 404 }
+      );
+    }
+
+    if (wishlist.isArchived) {
+      return NextResponse.json(
+        { error: 'Cannot delete items from an archived wishlist. Please unarchive it first.' },
+        { status: 403 }
+      );
+    }
+    
     const result = await db.collection('wishlists').updateOne(
       { _id: new ObjectId(id) },
       { 

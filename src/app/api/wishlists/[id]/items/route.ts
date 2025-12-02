@@ -19,6 +19,25 @@ export async function POST(
       );
     }
 
+    // Check if wishlist is archived
+    const wishlist = await db.collection('wishlists').findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!wishlist) {
+      return NextResponse.json(
+        { error: 'Wishlist not found' },
+        { status: 404 }
+      );
+    }
+
+    if (wishlist.isArchived) {
+      return NextResponse.json(
+        { error: 'Cannot add items to an archived wishlist. Please unarchive it first.' },
+        { status: 403 }
+      );
+    }
+
     const newItem: WishlistItem = {
       id: crypto.randomUUID(),
       name,

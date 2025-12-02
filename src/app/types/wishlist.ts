@@ -35,6 +35,7 @@ export interface WishlistItem {
     shareToken?: string;     // For sharing (permanent token)
     isPublic: boolean;       // Whether non-authenticated users can view
     allowEdits: boolean;     // Whether the wishlist can be edited by viewers
+    isArchived?: boolean;    // Whether the wishlist is archived (soft delete)
     
     // Tracking
     createdAt: Date;
