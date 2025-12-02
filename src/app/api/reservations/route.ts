@@ -3,6 +3,9 @@ import { getDb } from '@/app/lib/mongodb';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/app/lib/jwt';
 
+// Force Node.js runtime (required for jsonwebtoken)
+export const runtime = 'nodejs';
+
 // Helper to extract user ID from auth token
 async function getUserIdFromToken(): Promise<string | null> {
   const cookieStore = await cookies();

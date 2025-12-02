@@ -4,6 +4,9 @@ import { cookies } from 'next/headers';
 import { nanoid } from 'nanoid';
 import { verifyToken } from '@/app/lib/jwt';
 
+// Force Node.js runtime (required for jsonwebtoken)
+export const runtime = 'nodejs';
+
 // Helper to extract user ID from auth token
 async function getUserIdFromToken(): Promise<string | null> {
   const cookieStore = await cookies();
@@ -26,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const db = await getDb();
     const body = await request.json();
-    const { title, description, items = [] } = body;
+    const { title, description, currency, items = [] } = body;
     
     // Try to get authenticated user ID
     const userId = await getUserIdFromToken();
@@ -38,6 +41,7 @@ export async function POST(request: Request) {
     const wishlist = {
       title,
       description,
+      currency: currency || 'USD', // Default to USD if not provided
       items,
       userId: userId || null,
       ownerToken: userId ? null : ownerToken, // Only set for anonymous users

@@ -10,7 +10,7 @@ export async function POST(
   try {
     const db = await getDb();
     const { id } = await params;
-    const { name, description, price, url, imageUrl } = await request.json();
+    const { name, description, price, currency, url, imageUrl } = await request.json();
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -24,6 +24,7 @@ export async function POST(
       name,
       description,
       price: price ? Number(price) : undefined,
+      currency,
       url,
       imageUrl,
       createdAt: new Date(),

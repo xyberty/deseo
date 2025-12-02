@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/mongodb";
+import { getDb } from "@/app/lib/mongodb";
 import { ObjectId } from "mongodb";
 import type { WishlistItem } from "@/app/types/wishlist";
 
@@ -19,13 +19,13 @@ export async function PUT(
     // Log the raw IDs
     console.log('Raw IDs:', { id, itemId });
 
-    const { name, description, price, url, imageUrl } = await request.json();
+    const { name, description, price, currency, url, imageUrl } = await request.json();
 
     // Log the query parameters
     console.log('Query params:', {
       wishlistId: id,
       itemId,
-      updateData: { name, description, price, url, imageUrl }
+      updateData: { name, description, price, currency, url, imageUrl }
     });
 
     // First, check if the wishlist exists and has the item
@@ -46,6 +46,7 @@ export async function PUT(
           "items.$.name": name,
           "items.$.description": description,
           "items.$.price": price,
+          "items.$.currency": currency,
           "items.$.url": url,
           "items.$.imageUrl": imageUrl,
           "items.$.updatedAt": new Date(),

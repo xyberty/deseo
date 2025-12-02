@@ -3,6 +3,9 @@ import { signToken } from '@/app/lib/jwt';
 import { sendMagicLink } from '@/app/lib/email';
 import { rateLimit } from '@/app/lib/rate-limit';
 
+// Force Node.js runtime (required for jsonwebtoken)
+export const runtime = 'nodejs';
+
 // Create a rate limiter that allows 5 requests per 15 minutes
 const limiter = rateLimit({
   interval: 60 * 1000 * 15, // 15 minutes

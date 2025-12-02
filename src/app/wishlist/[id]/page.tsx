@@ -6,6 +6,7 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
 import { use } from 'react';
@@ -14,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, getCurrencyByAlpha3 } from '@/app/lib/currencies';
 
 // Define user permissions interface
 interface UserPermissions {
@@ -30,6 +32,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [newItemName, setNewItemName] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemCurrency, setNewItemCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [newItemUrl, setNewItemUrl] = useState('');
   const [newItemImageUrl, setNewItemImageUrl] = useState('');
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
@@ -47,6 +50,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [isPublic, setIsPublic] = useState(false);
   const [allowEdits, setAllowEdits] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [listCurrency, setListCurrency] = useState(DEFAULT_CURRENCY);
   
   // Add keyboard event listener for Escape key
   useEffect(() => {
@@ -72,6 +76,10 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       }
       setIsPublic(wishlist.isPublic);
       setAllowEdits(wishlist.allowEdits);
+      const currentListCurrency = wishlist.currency || DEFAULT_CURRENCY;
+      setListCurrency(currentListCurrency);
+      // Update new item currency to match list currency when wishlist loads
+      setNewItemCurrency(currentListCurrency);
     }
   }, [wishlist, resolvedParams.id]);
 
@@ -122,6 +130,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     if (!wishlist) return;
 
     try {
+      // Only include currency if it's different from list's currency
+      const itemCurrency = newItemCurrency !== listCurrency ? newItemCurrency : undefined;
+      
       const response = await fetch(`/api/wishlists/${resolvedParams.id}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,6 +140,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
           name: newItemName,
           description: newItemDescription,
           price: newItemPrice ? parseFloat(newItemPrice) : undefined,
+          currency: itemCurrency,
           url: newItemUrl,
           imageUrl: newItemImageUrl
         }),
@@ -140,6 +152,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       setNewItemName('');
       setNewItemDescription('');
       setNewItemPrice('');
+      setNewItemCurrency(listCurrency);
       setNewItemUrl('');
       setNewItemImageUrl('');
 
@@ -158,6 +171,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     if (!wishlist || !editingItem) return;
 
     try {
+      // Only include currency if it's different from list's currency
+      const itemCurrency = editingItem.currency !== listCurrency ? editingItem.currency : undefined;
+      
       const response = await fetch(`/api/wishlists/${resolvedParams.id}/items/${editingItem.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -165,6 +181,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
           name: editingItem.name,
           description: editingItem.description,
           price: editingItem.price,
+          currency: itemCurrency,
           url: editingItem.url,
           imageUrl: editingItem.imageUrl
         }),
@@ -250,7 +267,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           isPublic, 
-          allowEdits 
+          allowEdits,
+          currency: listCurrency
         }),
       });
       
@@ -386,15 +404,33 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                     </div>
                     <div className="grid gap-1">
                       <Label htmlFor="price">Price (optional)</Label>
-                      <Input 
-                        id="price"
-                        type="number"
-                        value={newItemPrice}
-                        onChange={(e) => setNewItemPrice(e.target.value)}
-                        placeholder="Enter price"
-                        min="0"
-                        step="0.01"
-                      />
+                      <div className="flex gap-2">
+                        <Input 
+                          id="price"
+                          type="number"
+                          value={newItemPrice}
+                          onChange={(e) => setNewItemPrice(e.target.value)}
+                          placeholder="Enter price"
+                          min="0"
+                          step="0.01"
+                          className="flex-1"
+                        />
+                        <Select 
+                          value={newItemCurrency} 
+                          onValueChange={setNewItemCurrency}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CURRENCIES.map((curr) => (
+                              <SelectItem key={curr.alpha3} value={curr.alpha3}>
+                                {curr.alpha3} — {curr.symbol}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="grid gap-1">
                       <Label htmlFor="url">URL (optional)</Label>
@@ -500,6 +536,26 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               </div>
               
               <div className="space-y-4">
+                <h3 className="text-lg font-medium">Currency</h3>
+                <div className="grid gap-2">
+                  <Label htmlFor="currency-select">Default Currency</Label>
+                  <Select value={listCurrency} onValueChange={setListCurrency}>
+                    <SelectTrigger id="currency-select">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CURRENCIES.map((curr) => (
+                        <SelectItem key={curr.alpha3} value={curr.alpha3}>
+                          {curr.alpha3} — {curr.symbol}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500">Items will use this currency by default</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
                 <h3 className="text-lg font-medium">Sharing</h3>
                 <div className="flex gap-2">
                   <Input 
@@ -585,7 +641,11 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setEditingItem(item);
+                      // Initialize editing item with currency (use list currency if item doesn't have one)
+                      setEditingItem({
+                        ...item,
+                        currency: item.currency || listCurrency
+                      });
                       setEditDialogOpen(true);
                     }}
                     className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background/90 hover:text-primary transition-colors"
@@ -630,7 +690,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               
               <CardContent className="p-4 pt-0">
                 {item.price && (
-                  <p className="text-green-600 font-medium">${item.price.toFixed(2)}</p>
+                  <p className="text-green-600 font-medium">
+                    {formatCurrency(item.price, item.currency || wishlist.currency || DEFAULT_CURRENCY)}
+                  </p>
                 )}
                 <div className="flex justify-between items-center mt-2">
                   {item.url && (
@@ -730,13 +792,31 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-price">Price (optional)</Label>
-              <Input
-                id="edit-price"
-                type="number"
-                step="0.01"
-                value={editingItem?.price || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, price: parseFloat(e.target.value) || 0} : null)}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="edit-price"
+                  type="number"
+                  step="0.01"
+                  value={editingItem?.price || ''}
+                  onChange={(e) => setEditingItem(prev => prev ? {...prev, price: parseFloat(e.target.value) || 0} : null)}
+                  className="flex-1"
+                />
+                <Select 
+                  value={editingItem?.currency || listCurrency} 
+                  onValueChange={(value) => setEditingItem(prev => prev ? {...prev, currency: value} : null)}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((curr) => (
+                      <SelectItem key={curr.alpha3} value={curr.alpha3}>
+                        {curr.alpha3} — {curr.symbol}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-url">URL (optional)</Label>

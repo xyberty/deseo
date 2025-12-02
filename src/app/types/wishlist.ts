@@ -4,6 +4,7 @@ export interface WishlistItem {
     name: string;
     description?: string;
     price?: number;
+    currency?: string;      // Optional currency override (ISO 4217 alpha-3 code)
     url?: string;
     imageUrl?: string;
     createdAt: Date;
@@ -24,6 +25,7 @@ export interface WishlistItem {
     _id?: string;
     title: string;
     description?: string;
+    currency?: string;      // List currency (ISO 4217 alpha-3 code), defaults to USD
     items: WishlistItem[];
     reservations?: Reservation[];
     

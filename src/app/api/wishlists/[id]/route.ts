@@ -5,6 +5,9 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/app/lib/jwt';
 import { nanoid } from 'nanoid';
 
+// Force Node.js runtime (required for jsonwebtoken)
+export const runtime = 'nodejs';
+
 // Helper to extract user ID from auth token
 async function getUserIdFromToken(): Promise<string | null> {
   const cookieStore = await cookies();
@@ -190,6 +193,7 @@ export async function PATCH(
       updatedAt: Date;
       title?: string;
       description?: string;
+      currency?: string;
       isPublic?: boolean;
       allowEdits?: boolean;
     } = {
@@ -198,6 +202,7 @@ export async function PATCH(
     
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
+    if (body.currency !== undefined) updateData.currency = body.currency;
     if (body.isPublic !== undefined) updateData.isPublic = body.isPublic;
     if (body.allowEdits !== undefined) updateData.allowEdits = body.allowEdits;
     

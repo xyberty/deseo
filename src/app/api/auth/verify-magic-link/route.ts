@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { verifyToken } from '@/app/lib/jwt';
 import { getDb } from '@/app/lib/mongodb';
 
+// Force Node.js runtime (required for jsonwebtoken)
+export const runtime = 'nodejs';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
