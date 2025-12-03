@@ -1,9 +1,57 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/app/lib/jwt';
 import { getDb } from '@/app/lib/mongodb';
+import { cookies } from 'next/headers';
 
 // Force Node.js runtime (required for jsonwebtoken)
 export const runtime = 'nodejs';
+
+// Helper function to migrate anonymous wishlists to authenticated user
+async function migrateAnonymousWishlists(db: any, userId: string, request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    
+    // Get all owner tokens from cookies
+    const ownerTokens = allCookies
+      .filter(cookie => cookie.name.startsWith('owner_'))
+      .map(cookie => cookie.value);
+    
+    if (ownerTokens.length === 0) {
+      return; // No anonymous wishlists to migrate
+    }
+    
+    // Find wishlists with matching owner tokens
+    const wishlistsToMigrate = await db.collection('wishlists').find({
+      ownerToken: { $in: ownerTokens },
+      userId: null, // Only migrate wishlists that aren't already assigned
+    }).toArray();
+    
+    if (wishlistsToMigrate.length === 0) {
+      return; // No wishlists to migrate
+    }
+    
+    // Migrate wishlists: set userId and clear ownerToken
+    const wishlistIds = wishlistsToMigrate.map((w: any) => w._id);
+    await db.collection('wishlists').updateMany(
+      { _id: { $in: wishlistIds } },
+      {
+        $set: {
+          userId,
+          updatedAt: new Date(),
+        },
+        $unset: {
+          ownerToken: '',
+        },
+      }
+    );
+    
+    console.log(`Migrated ${wishlistsToMigrate.length} anonymous wishlist(s) to user ${userId}`);
+  } catch (error) {
+    console.error('Error migrating anonymous wishlists:', error);
+    // Don't throw - migration failure shouldn't block authentication
+  }
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -37,6 +85,9 @@ export async function GET(request: Request) {
         { $set: { lastLogin: new Date(), updatedAt: new Date() } }
       );
     }
+
+    // Migrate anonymous wishlists to authenticated user
+    await migrateAnonymousWishlists(db, email, request);
 
     // Create response with redirect
     const response = NextResponse.redirect(new URL('/', request.url));

@@ -17,6 +17,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
+import { useAuth } from '@/app/hooks/useAuth';
 
 // Define user permissions interface
 interface UserPermissions {
@@ -53,6 +54,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [shareUrl, setShareUrl] = useState('');
   const [listCurrency, setListCurrency] = useState(DEFAULT_CURRENCY);
   const [isArchived, setIsArchived] = useState(false);
+  const { isAuthenticated } = useAuth();
   
   // Add keyboard event listener for Escape key
   useEffect(() => {
