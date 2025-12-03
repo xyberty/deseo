@@ -8,6 +8,9 @@ import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
 import { Button } from '@/app/components/ui/button';
 import { Plus, Gift, PenSquare, List, Clock, ChevronDown, ChevronUp, Archive } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
+import { useAuth } from '@/app/hooks/useAuth';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';
+import { MagicLinkForm } from '@/app/components/MagicLinkForm';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -16,6 +19,8 @@ export default function HomePage() {
   const [sharedWishlists, setSharedWishlists] = useState<Wishlist[]>([]);
   const [reservations, setReservations] = useState<{wishlistId: string, title: string, items: WishlistItem[]}[]>([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [savePromptOpen, setSavePromptOpen] = useState(false);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   
   useEffect(() => {
     fetchData();
@@ -69,19 +74,10 @@ export default function HomePage() {
   const hasSharedWishlists = sharedWishlists.length > 0;
   const hasReservations = reservations.length > 0;
   const hasAnyContent = hasCreatedWishlists || hasArchivedWishlists || hasSharedWishlists || hasReservations;
+  const hasAnonymousWishlists = !authLoading && !isAuthenticated && hasCreatedWishlists;
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold font-heading">My Dashboard</h1>
-        <Link href="/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Wishlist
-          </Button>
-        </Link>
-      </div>
-      
       {!hasAnyContent && (
         <div className="text-center p-12 border border-dashed rounded-lg my-8">
           <h2 className="text-xl font-medium mb-2">Welcome to Deseo!</h2>
@@ -103,7 +99,20 @@ export default function HomePage() {
       {(hasCreatedWishlists || hasArchivedWishlists) && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <PenSquare className="h-5 w-5" />
+            <div className="relative inline-flex items-center">
+              {hasAnonymousWishlists ? (
+                <button
+                  onClick={() => setSavePromptOpen(true)}
+                  className="cursor-pointer hover:opacity-80 transition-opacity relative"
+                  aria-label="Save wishlists to account"
+                >
+                  <PenSquare className="h-5 w-5" />
+                  <span className="absolute -top-0.5 -right-0.5 h-3 w-3 bg-violet-500 rounded-full border-1 border-white shadow-lg z-12"></span>
+                </button>
+              ) : (
+                <PenSquare className="h-5 w-5" />
+              )}
+            </div>
             <h2 className="text-xl font-bold">My Wishlists</h2>
           </div>
           
@@ -272,6 +281,19 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Save to Account Dialog */}
+      <Dialog open={savePromptOpen} onOpenChange={setSavePromptOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save your wishlists to access them from any device</DialogTitle>
+            <DialogDescription>
+              Sign in with your email to access your wishlists from any device, anytime.
+            </DialogDescription>
+          </DialogHeader>
+          <MagicLinkForm onSuccess={() => setSavePromptOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
