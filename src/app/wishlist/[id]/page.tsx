@@ -51,6 +51,15 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [isPublic, setIsPublic] = useState(false);
   const [allowEdits, setAllowEdits] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [shortUrl, setShortUrl] = useState('');
+  const [shortCode, setShortCode] = useState('');
+  const [customCode, setCustomCode] = useState('');
+  const [isCustomCodeEditing, setIsCustomCodeEditing] = useState(false);
+  const [analytics, setAnalytics] = useState<{
+    totalClicks: number;
+    clicksByDate: Array<{ date: string; count: number }>;
+    recentClicks: Array<{ clickedAt: Date; referer?: string; userAgent?: string }>;
+  } | null>(null);
   const [listCurrency, setListCurrency] = useState(DEFAULT_CURRENCY);
   const [isArchived, setIsArchived] = useState(false);
   
@@ -85,6 +94,55 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       setNewItemCurrency(currentListCurrency);
     }
   }, [wishlist, resolvedParams.id]);
+
+  // Fetch short link when wishlist loads (only for owners)
+  const fetchShortLink = useCallback(async () => {
+    if (!wishlist || !userPermissions.isOwner) return;
+    
+    try {
+      const response = await fetch(`/api/shortlinks/${resolvedParams.id}`);
+      if (!response.ok) {
+        // If 404, short link doesn't exist yet - will be created on first access
+        if (response.status === 404) return;
+        throw new Error('Failed to fetch short link');
+      }
+      const data = await response.json();
+      setShortUrl(data.shortUrl);
+      setShortCode(data.shortCode);
+      setCustomCode(data.customCode ? data.shortCode : '');
+    } catch (error) {
+      console.error('Error fetching short link:', error);
+    }
+  }, [wishlist, userPermissions.isOwner, resolvedParams.id]);
+
+  // Fetch analytics when wishlist loads (only for owners)
+  const fetchAnalytics = useCallback(async () => {
+    if (!wishlist || !userPermissions.isOwner) return;
+    
+    try {
+      const response = await fetch(`/api/shortlinks/${resolvedParams.id}/analytics`);
+      if (!response.ok) {
+        if (response.status === 404) return;
+        throw new Error('Failed to fetch analytics');
+      }
+      const data = await response.json();
+      setAnalytics({
+        totalClicks: data.totalClicks,
+        clicksByDate: data.clicksByDate,
+        recentClicks: data.recentClicks,
+      });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    }
+  }, [wishlist, userPermissions.isOwner, resolvedParams.id]);
+
+  // Fetch short link and analytics when wishlist or permissions change
+  useEffect(() => {
+    if (wishlist && userPermissions.isOwner) {
+      fetchShortLink();
+      fetchAnalytics();
+    }
+  }, [wishlist, userPermissions.isOwner, fetchShortLink, fetchAnalytics]);
 
   const fetchWishlist = useCallback(async () => {
     setIsLoading(true);
@@ -314,10 +372,43 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     }
   };
   
-  // Copy share link to clipboard
+  // Copy share link to clipboard (prefer short link if available)
   const copyShareLink = () => {
-    navigator.clipboard.writeText(shareUrl);
+    const linkToCopy = shortUrl || shareUrl;
+    navigator.clipboard.writeText(linkToCopy);
     toast.success('Link copied to clipboard');
+  };
+
+  // Update custom short code
+  const updateCustomCode = async () => {
+    if (!customCode.trim()) {
+      toast.error('Error', { description: 'Custom code cannot be empty' });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/shortlinks/${resolvedParams.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customCode: customCode.trim() }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update custom code');
+      }
+
+      const data = await response.json();
+      setShortUrl(data.shortUrl);
+      setShortCode(data.shortCode);
+      setIsCustomCodeEditing(false);
+      toast.success('Custom code updated');
+      fetchShortLink(); // Refresh to get updated data
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'Failed to update custom code',
+      });
+    }
   };
 
   const handleDeleteWishlist = async () => {
@@ -602,15 +693,141 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Sharing</h3>
-                <div className="flex gap-2">
-                  <Input 
-                    value={shareUrl} 
-                    readOnly 
-                    onClick={(e) => e.currentTarget.select()}
-                    disabled={isArchived}
-                  />
-                  <Button variant="outline" onClick={copyShareLink} disabled={isArchived}>Copy</Button>
+                
+                {/* Short Link Section */}
+                <div className="space-y-2">
+                  <Label htmlFor="short-link">Short Link</Label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 flex gap-2">
+                      <Input 
+                        id="short-link"
+                        value={shortUrl || 'Generating...'} 
+                        readOnly 
+                        onClick={(e) => e.currentTarget.select()}
+                        disabled={isArchived}
+                        className="font-mono text-sm"
+                      />
+                      <Button variant="outline" onClick={copyShareLink} disabled={isArchived || !shortUrl}>
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Custom Code Editor */}
+                  {userPermissions.isOwner && !isArchived && (
+                    <div className="space-y-2">
+                      {!isCustomCodeEditing ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">
+                            Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setCustomCode(shortCode || '');
+                              setIsCustomCodeEditing(true);
+                            }}
+                            className="h-7 px-2 text-xs"
+                          >
+                            <Pencil className="h-3 w-3 mr-1" />
+                            Customize
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Input
+                              value={customCode}
+                              onChange={(e) => setCustomCode(e.target.value)}
+                              placeholder="Enter custom code (3-20 chars)"
+                              className="font-mono text-sm"
+                              maxLength={20}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Alphanumeric only, 3-20 characters
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={updateCustomCode}
+                            disabled={!customCode.trim() || customCode.trim().length < 3}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setIsCustomCodeEditing(false);
+                              setCustomCode(shortCode || '');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Full Link (Collapsible) */}
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                      Show full link
+                    </summary>
+                    <div className="mt-2 flex gap-2">
+                      <Input 
+                        value={shareUrl} 
+                        readOnly 
+                        onClick={(e) => e.currentTarget.select()}
+                        disabled={isArchived}
+                        className="font-mono text-xs"
+                      />
+                      <Button variant="outline" size="sm" onClick={() => {
+                        navigator.clipboard.writeText(shareUrl);
+                        toast.success('Full link copied');
+                      }} disabled={isArchived}>
+                        Copy
+                      </Button>
+                    </div>
+                  </details>
                 </div>
+
+                {/* Analytics Section */}
+                {analytics && userPermissions.isOwner && (
+                  <div className="space-y-2 pt-2">
+                    <Label>Link Analytics</Label>
+                    <div className="flex justify-start gap-4">
+                      <div>
+                        <p className="text-sm"><span className="text-gray-500">Total clicks:</span> {analytics.totalClicks}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm"><span className="text-gray-500">Today:</span> {analytics.clicksByDate.length > 0 
+                            ? analytics.clicksByDate[analytics.clicksByDate.length - 1].count 
+                            : 0}
+                        </p>
+                      </div>
+                    </div>
+                    {analytics.recentClicks.length > 0 && (
+                      <details className="text-sm">
+                        <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mt-2">
+                          Recent clicks ({analytics.recentClicks.length})
+                        </summary>
+                        <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                          {analytics.recentClicks.map((click, idx) => (
+                            <div key={idx} className="text-sm text-gray-600 py-1 border-b">
+                              {new Date(click.clickedAt).toLocaleString()}
+                              {click.referer && (
+                                <span className="ml-2 text-gray-400">from {new URL(click.referer).hostname}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">

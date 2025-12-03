@@ -44,6 +44,7 @@ export async function GET() {
     }
     
     const db = await getDb();
+    const cookieStore = await cookies();
     
     // First, find all wishlists that have reservations from this user
     // We need to check both authenticated user email and anonymous reserver ID
@@ -61,6 +62,10 @@ export async function GET() {
           _id: 1,
           title: 1,
           items: 1,
+          userId: 1,
+          ownerToken: 1,
+          isPublic: 1,
+          isArchived: { $ifNull: ["$isArchived", false] },
           reservations: {
             $ifNull: [
               {
@@ -84,6 +89,10 @@ export async function GET() {
         $project: {
           wishlistId: "$_id",
           title: 1,
+          userId: 1,
+          ownerToken: 1,
+          isPublic: 1,
+          isArchived: 1,
           items: {
             $filter: {
               input: "$items",
@@ -111,15 +120,34 @@ export async function GET() {
       .aggregate(pipeline)
       .toArray();
     
-    // Format the response
-    const formattedReservations = userReservations.map(wishlist => ({
-      wishlistId: wishlist.wishlistId.toString(),
-      title: wishlist.title,
-      items: wishlist.items
-    }));
+    // Filter reservations to only include:
+    // 1. Wishlists the user can view (owner, or public and not archived)
+    // 2. Wishlists with at least one reserved item
+    const accessibleReservations = userReservations
+      .filter(wishlist => {
+        // Check if user is the owner
+        // For authenticated users: check if userId matches
+        // For anonymous users: check if owner token cookie matches
+        const wishlistId = wishlist.wishlistId.toString();
+        const ownerTokenCookie = cookieStore.get(`owner_${wishlistId}`)?.value;
+        const isOwner = 
+          (userId && wishlist.userId === userId) ||
+          (!userId && wishlist.ownerToken && ownerTokenCookie === wishlist.ownerToken);
+        
+        // Check if user can view (owner or public and not archived)
+        const canView = isOwner || (wishlist.isPublic && !wishlist.isArchived);
+        
+        // Only include if user can view AND has at least one reserved item
+        return canView && wishlist.items && wishlist.items.length > 0;
+      })
+      .map(wishlist => ({
+        wishlistId: wishlist.wishlistId.toString(),
+        title: wishlist.title,
+        items: wishlist.items
+      }));
     
     return NextResponse.json({
-      reservations: formattedReservations
+      reservations: accessibleReservations
     });
   } catch (error) {
     console.error('Error fetching reservations:', error);

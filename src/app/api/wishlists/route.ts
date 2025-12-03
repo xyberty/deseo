@@ -54,11 +54,16 @@ export async function POST(request: Request) {
 
     const result = await db.collection('wishlists').insertOne(wishlist);
     
+    // Get base URL from request or env var
+    // For Request type, we can use the request.url directly
+    const requestUrl = new URL(request.url);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${requestUrl.protocol}//${requestUrl.host}`;
+    
     // Create response with wishlist data
     const response = NextResponse.json({
       id: result.insertedId.toString(),
       ...wishlist,
-      shareUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/wishlist/${result.insertedId.toString()}?token=${shareToken}`,
+      shareUrl: `${baseUrl}/wishlist/${result.insertedId.toString()}?token=${shareToken}`,
     });
     
     // If it's an anonymous user, set the owner token in a cookie
