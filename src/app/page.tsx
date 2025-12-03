@@ -77,7 +77,7 @@ export default function HomePage() {
   const hasAnonymousWishlists = !authLoading && !isAuthenticated && hasCreatedWishlists;
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-3 sm:p-4 lg:p-6">
       {!hasAnyContent && (
         <div className="text-center p-12 border border-dashed rounded-lg my-8">
           <h2 className="text-xl font-medium mb-2">Welcome to Deseo!</h2>
@@ -284,10 +284,10 @@ export default function HomePage() {
 
       {/* Save to Account Dialog */}
       <Dialog open={savePromptOpen} onOpenChange={setSavePromptOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Save your wishlists to access them from any device</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Save Your Wishlists</DialogTitle>
+            <DialogDescription className="text-sm">
               Sign in with your email to access your wishlists from any device, anytime.
             </DialogDescription>
           </DialogHeader>

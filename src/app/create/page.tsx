@@ -49,7 +49,7 @@ export default function CreateWishlist() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
+    <div className="container mx-auto p-3 sm:p-4 lg:p-6 max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Create Wishlist</h1>
       
       <form onSubmit={handleSubmit} className="space-y-6">

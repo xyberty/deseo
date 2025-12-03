@@ -451,16 +451,16 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold font-heading">{wishlist.title}</h1>
+    <div className="mx-auto p-3 sm:p-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading break-words">{wishlist.title}</h1>
           {wishlist.description && (
-            <p className="text-gray-600 mt-1">{wishlist.description}</p>
+            <p className="text-gray-600 mt-1 break-words">{wishlist.description}</p>
           )}
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           {/* Only show settings/share for wishlist owners */}
           {userPermissions.isOwner && (
             <>
@@ -493,7 +493,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                   Add Item
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80">
+              <PopoverContent className="w-[calc(100vw-2rem)] max-w-80 sm:w-80">
                 <div className="grid gap-4">
                   <div className="space-y-2">
                     <h4 className="font-medium leading-none">Add Item</h4>
@@ -609,38 +609,44 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
       {/* Settings dialog for owners */}
       {showSettingsDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full relative">
-            <button
-              onClick={() => setShowSettingsDialog(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-heading font-bold">Wishlist Settings</h2>
-              {isArchived && (
-                <Badge variant="secondary" className="text-xs">
-                  Archived
-                </Badge>
-              )}
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md lg:max-w-2xl max-h-[calc(100vh-2rem)] flex flex-col relative shadow-lg">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-white rounded-t-lg shrink-0">
+              <h2 className="text-lg sm:text-xl font-heading font-bold">Wishlist Settings</h2>
+              <div className="flex items-center gap-2">
+                {isArchived && (
+                  <Badge variant="secondary" className="text-xs">
+                    Archived
+                  </Badge>
+                )}
+                <button
+                  onClick={() => setShowSettingsDialog(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                  aria-label="Close"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
             </div>
             
-            <div className="space-y-6">
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6">
+              <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Privacy</h3>
                 
@@ -697,16 +703,16 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 {/* Short Link Section */}
                 <div className="space-y-2">
                   <Label htmlFor="short-link">Short Link</Label>
-                  <div className="flex gap-2">
-                    <div className="flex-1 flex gap-2">
-                      <Input 
-                        id="short-link"
-                        value={shortUrl || 'Generating...'} 
-                        readOnly 
-                        onClick={(e) => e.currentTarget.select()}
-                        disabled={isArchived}
-                        className="font-mono text-sm"
-                      />
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 flex flex-col sm:flex-row gap-2">
+                        <Input 
+                          id="short-link"
+                          value={shortUrl || 'Generating...'} 
+                          readOnly 
+                          onClick={(e) => e.currentTarget.select()}
+                          disabled={isArchived}
+                          className="font-mono text-xs sm:text-sm"
+                        />
                       <Button variant="outline" onClick={copyShareLink} disabled={isArchived || !shortUrl}>
                         Copy
                       </Button>
@@ -731,17 +737,16 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                             className="h-7 px-2 text-xs"
                           >
                             <Pencil className="h-3 w-3 mr-1" />
-                            Customize
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="flex-1">
                             <Input
                               value={customCode}
                               onChange={(e) => setCustomCode(e.target.value)}
                               placeholder="Enter custom code (3-20 chars)"
-                              className="font-mono text-sm"
+                              className="font-mono text-xs sm:text-sm"
                               maxLength={20}
                             />
                             <p className="text-xs text-gray-500 mt-1">
@@ -776,13 +781,13 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                     <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
                       Show full link
                     </summary>
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex flex-col sm:flex-row gap-2">
                       <Input 
                         value={shareUrl} 
                         readOnly 
                         onClick={(e) => e.currentTarget.select()}
                         disabled={isArchived}
-                        className="font-mono text-xs"
+                        className="font-mono text-xs break-all"
                       />
                       <Button variant="outline" size="sm" onClick={() => {
                         navigator.clipboard.writeText(shareUrl);
@@ -846,17 +851,23 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 </div>
               </div>
               
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="border-t p-4 sm:p-6 bg-white rounded-b-lg shrink-0">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowSettingsDialog(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
                 <Button 
                   variant={isArchived ? "default" : "outline"}
                   onClick={handleArchiveToggle}
+                  className="w-full sm:w-auto"
                 >
                   {isArchived ? 'Unarchive' : 'Archive'}
                 </Button>
-                <Button onClick={updatePrivacySettings} disabled={isArchived}>
+                <Button onClick={updatePrivacySettings} disabled={isArchived} className="w-full sm:w-auto">
                   Save Changes
                 </Button>
               </div>
@@ -867,9 +878,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
       {/* Delete Wishlist Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Delete Wishlist</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Delete Wishlist</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-gray-600">
@@ -877,11 +888,11 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               All items and reservations will be permanently deleted.
             </p>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteWishlist}>
+            <Button variant="destructive" onClick={handleDeleteWishlist} className="w-full sm:w-auto">
               Delete Wishlist
             </Button>
           </div>
@@ -1042,9 +1053,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Edit Item</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -1110,11 +1121,11 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleEditItem}>
+            <Button onClick={handleEditItem} className="w-full sm:w-auto">
               Save Changes
             </Button>
           </div>
@@ -1123,18 +1134,18 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Delete Item</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Delete Item</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p>Are you sure you want to delete &quot;{itemToDelete?.name}&quot;? This action cannot be undone.</p>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteItem}>
+            <Button variant="destructive" onClick={handleDeleteItem} className="w-full sm:w-auto">
               Delete
             </Button>
           </div>
@@ -1143,9 +1154,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
       {/* Reserve Dialog */}
       <Dialog open={reserveDialogOpen} onOpenChange={setReserveDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Reserve Item</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Reserve Item</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleReserveItem}>
             <div className="grid gap-4 py-4">
@@ -1197,13 +1208,14 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 </Label>
               </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setReserveDialogOpen(false)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setReserveDialogOpen(false)} className="w-full sm:w-auto">
                 Cancel
               </Button>
               <Button 
                 type="submit"
                 disabled={allowDisclosure && !reserverEmail && !displayName}
+                className="w-full sm:w-auto"
               >
                 Reserve
               </Button>
