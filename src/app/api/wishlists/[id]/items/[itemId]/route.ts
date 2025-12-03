@@ -15,23 +15,12 @@ export async function PUT(
 
   try {
     const db = await getDb();
-    
-    // Log the raw IDs
-    console.log('Raw IDs:', { id, itemId });
 
     const { name, description, price, currency, url, imageUrl } = await request.json();
-
-    // Log the query parameters
-    console.log('Query params:', {
-      wishlistId: id,
-      itemId,
-      updateData: { name, description, price, currency, url, imageUrl }
-    });
 
     // First, check if the wishlist exists and has the item
     const wishlistId = new ObjectId(id);
     const wishlist = await db.collection("wishlists").findOne({ _id: wishlistId });
-    console.log('Found wishlist:', wishlist ? 'yes' : 'no');
     
     if (!wishlist) {
       return NextResponse.json({ error: "Wishlist not found" }, { status: 404 });
@@ -43,13 +32,6 @@ export async function PUT(
         { error: 'Cannot edit items in an archived wishlist. Please unarchive it first.' },
         { status: 403 }
       );
-    }
-    
-    if (wishlist) {
-      console.log('Items in wishlist:', wishlist.items.map((item: WishlistItem) => item.id));
-      console.log('Looking for item with ID:', itemId);
-      const itemExists = wishlist.items.some((item: WishlistItem) => item.id === itemId);
-      console.log('Item exists in wishlist:', itemExists);
     }
 
     const result = await db.collection("wishlists").updateOne(
@@ -67,11 +49,6 @@ export async function PUT(
         }
       }
     );
-
-    console.log('Update result:', {
-      matchedCount: result.matchedCount,
-      modifiedCount: result.modifiedCount
-    });
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Wishlist or item not found" }, { status: 404 });

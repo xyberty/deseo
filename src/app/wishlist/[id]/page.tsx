@@ -1004,21 +1004,12 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                             <div className="text-xs text-gray-500">
                               {(() => {
                                 const reservation = wishlist.reservations?.find(r => r.itemId === item.id);
-                                console.log('Found reservation for item:', item.id, {
-                                  reservation,
-                                  isOwner: userPermissions.isOwner,
-                                  allowDisclosure: reservation?.allowDisclosure,
-                                  displayName: reservation?.displayName,
-                                  reserverEmail: reservation?.reserverEmail
-                                });
                                 
                                 if (reservation?.allowDisclosure === true) {
                                   const identity = reservation.displayName || reservation.reserverEmail || 'Anonymous';
-                                  console.log('Showing identity:', identity);
                                   return identity;
                                 }
                                 
-                                console.log('Not showing identity - allowDisclosure:', reservation?.allowDisclosure);
                                 return null;
                               })()}
                             </div>

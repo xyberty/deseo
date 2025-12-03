@@ -15,8 +15,6 @@ export async function GET(
     const resolvedParams = await params;
     const shortCode = resolvedParams.shortCode;
     
-    console.log('[Short Link Redirect] Route handler called with short code:', shortCode);
-    
     const db = await getDb();
     
     // Find the short link (case-sensitive match)
@@ -24,10 +22,7 @@ export async function GET(
       shortCode: shortCode,
     });
     
-    console.log('[Short Link Redirect] Found short link:', shortLink ? 'yes' : 'no');
-    
     if (!shortLink) {
-      console.log('[Short Link Redirect] Short link not found, redirecting to home');
       // Redirect to home page or show 404
       return NextResponse.redirect(
         new URL('/', request.url),
@@ -43,21 +38,16 @@ export async function GET(
         ? shortLink.wishlistId 
         : shortLink.wishlistId.toString();
       
-      console.log('[Short Link Redirect] Looking up wishlist:', wishlistId);
-      
       const wishlist = await db.collection('wishlists').findOne({
         _id: new ObjectId(wishlistId),
       });
       
       if (!wishlist) {
-        console.log('[Short Link Redirect] Wishlist not found, redirecting to home');
         return NextResponse.redirect(
           new URL('/', request.url),
           302
         );
       }
-      
-      console.log('[Short Link Redirect] Wishlist found, proceeding with redirect');
     } catch (error) {
       console.error('[Short Link Redirect] Error finding wishlist:', error);
       return NextResponse.redirect(
@@ -88,8 +78,6 @@ export async function GET(
     const requestUrl = new URL(request.url);
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${requestUrl.protocol}//${requestUrl.host}`;
     const fullUrl = `${baseUrl}/wishlist/${wishlistId}?token=${shortLink.shareToken}`;
-    
-    console.log('[Short Link Redirect] Redirecting to:', fullUrl);
     
     // Redirect to the full wishlist URL
     return NextResponse.redirect(fullUrl, 302);

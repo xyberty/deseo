@@ -46,8 +46,6 @@ async function migrateAnonymousWishlists(db: Db, userId: string) {
         },
       }
     );
-    
-    console.log(`Migrated ${wishlistsToMigrate.length} anonymous wishlist(s) to user ${userId}`);
   } catch (error) {
     console.error('Error migrating anonymous wishlists:', error);
     // Don't throw - migration failure shouldn't block authentication
