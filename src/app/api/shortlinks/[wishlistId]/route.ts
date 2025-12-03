@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/app/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { ObjectId, type WithId, type Document } from 'mongodb';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/app/lib/jwt';
 import { nanoid, customAlphabet } from 'nanoid';
+import type { ShortLink } from '@/app/types/shortlink';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -76,7 +77,7 @@ export async function GET(
     }
     
     // Get or create short link
-    let shortLink = await db.collection('shortLinks').findOne({
+    let shortLink: WithId<Document> | null = await db.collection('shortLinks').findOne({
       wishlistId: wishlistId,
     });
     
@@ -114,8 +115,11 @@ export async function GET(
         updatedAt: new Date(),
       };
       
-      await db.collection('shortLinks').insertOne(newShortLink);
-      shortLink = newShortLink as any;
+      const result = await db.collection('shortLinks').insertOne(newShortLink);
+      // Fetch the inserted document to get the _id
+      shortLink = await db.collection('shortLinks').findOne({
+        _id: result.insertedId,
+      });
     }
     
     if (!shortLink) {
