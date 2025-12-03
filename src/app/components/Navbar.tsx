@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/app/lib/utils';
 import { Button } from '@/app/components/ui/button';
@@ -67,9 +68,16 @@ export function Navbar() {
           <div className="flex items-center justify-between h-16">
             <Link 
               href="/" 
-              className="font-montserrat font-bold text-xl text-primary hover:text-primary/90 transition-colors"
+              className="flex items-center gap-2 font-montserrat font-bold text-xl text-primary hover:text-primary/90 transition-colors"
             >
-              Deseo
+              <Image 
+                src="/deseo-64x64.png" 
+                alt="Deseo logo" 
+                width={32} 
+                height={32}
+                className="h-6 w-6 sm:h-8 sm:w-8"
+              />
+              <span>Deseo</span>
             </Link>
             
             {/* Desktop Navigation */}

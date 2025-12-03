@@ -18,6 +18,11 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Deseo - Create and share your wishlists",
   description: "Create and share your wishlists with friends and family",
+  icons: {
+    icon: "/deseo-32x32.png",
+    apple: "/deseo-180x180.png",
+    shortcut: "/deseo-32x32.png",
+  },
 };
 
 export default function RootLayout({
