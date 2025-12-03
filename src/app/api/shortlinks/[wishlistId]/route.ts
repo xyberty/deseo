@@ -4,7 +4,6 @@ import { ObjectId, type WithId, type Document } from 'mongodb';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/app/lib/jwt';
 import { nanoid, customAlphabet } from 'nanoid';
-import type { ShortLink } from '@/app/types/shortlink';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
