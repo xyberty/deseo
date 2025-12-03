@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
 import { Button } from '@/app/components/ui/button';
-import { Plus, Gift, PenSquare, List, Clock, ChevronDown, ChevronUp, Archive } from 'lucide-react';
+import { Gift, PenSquare, List, Clock, ChevronDown, ChevronUp, Archive } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import { useAuth } from '@/app/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';

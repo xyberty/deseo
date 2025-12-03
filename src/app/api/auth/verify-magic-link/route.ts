@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { verifyToken } from '@/app/lib/jwt';
 import { getDb } from '@/app/lib/mongodb';
 import { cookies } from 'next/headers';
+import type { Db } from 'mongodb';
 
 // Force Node.js runtime (required for jsonwebtoken)
 export const runtime = 'nodejs';
 
 // Helper function to migrate anonymous wishlists to authenticated user
-async function migrateAnonymousWishlists(db: any, userId: string, request: Request) {
+async function migrateAnonymousWishlists(db: Db, userId: string) {
   try {
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
@@ -32,7 +33,7 @@ async function migrateAnonymousWishlists(db: any, userId: string, request: Reque
     }
     
     // Migrate wishlists: set userId and clear ownerToken
-    const wishlistIds = wishlistsToMigrate.map((w: any) => w._id);
+    const wishlistIds = wishlistsToMigrate.map((w) => w._id);
     await db.collection('wishlists').updateMany(
       { _id: { $in: wishlistIds } },
       {
@@ -87,7 +88,7 @@ export async function GET(request: Request) {
     }
 
     // Migrate anonymous wishlists to authenticated user
-    await migrateAnonymousWishlists(db, email, request);
+    await migrateAnonymousWishlists(db, email);
 
     // Create response with redirect
     const response = NextResponse.redirect(new URL('/', request.url));
