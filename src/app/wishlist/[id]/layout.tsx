@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { getDb } from '@/app/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import { getServerBaseUrl } from '@/app/lib/constants'
+import type { WishlistItem } from '@/app/types/wishlist'
 
 const baseUrl = getServerBaseUrl()
 
@@ -44,7 +45,7 @@ export async function generateMetadata(
     const url = `${baseUrl}/wishlist/${id}`
     
     // Get first item image if available
-    const firstItemImage = wishlist.items?.find((item: any) => item.imageUrl)?.imageUrl
+    const firstItemImage = wishlist.items?.find((item: WishlistItem) => item.imageUrl)?.imageUrl
 
     const defaultImage = `${baseUrl}/deseo-512x512.png`
     const ogImage = firstItemImage || defaultImage
