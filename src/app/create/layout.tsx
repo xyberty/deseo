@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: 'Create Wishlist',
   description: 'Create a new wishlist to share with friends and family. Add items, set prices, and share your list easily.',
   openGraph: {
-    title: 'Create Wishlist - Deseo',
-    description: 'Create a new wishlist to share with friends and family',
+    title: 'Create Wishlist at Deseo',
+    description: 'Create a new wishlist to share with friends and familyAdd items, set prices, and share your list easily.',
     url: `${baseUrl}/create`,
     type: 'website',
     images: [
@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Create Wishlist - Deseo',
-    description: 'Create a new wishlist to share with friends and family',
+    title: 'Create Wishlist at Deseo',
+    description: 'Create a new wishlist to share with friends and family. Add items, set prices, and share your list easily.',
     images: [`${baseUrl}/deseo-512x512.png`],
   },
   alternates: {
