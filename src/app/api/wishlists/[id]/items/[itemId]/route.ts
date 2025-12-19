@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/app/lib/mongodb";
 import { ObjectId } from "mongodb";
-import type { WishlistItem } from "@/app/types/wishlist";
 
 export async function PUT(
   request: NextRequest,

@@ -36,16 +36,23 @@ export async function GET() {
       .filter(cookie => cookie.name.startsWith('owner_'))
       .map(cookie => cookie.value);
     
+    // Build the exclusion conditions for shared wishlists
+    const exclusionConditions = [
+      // Not owned by authenticated user
+      ...(userId ? [{ userId }] : []),
+      // Not owned by anonymous users with valid owner tokens
+      ...(ownerTokens.length > 0 ? [{ ownerToken: { $in: ownerTokens } }] : [])
+    ];
+    
     // Build the query to find shared wishlists
-    const query = {
+    const query: any = {
       isPublic: true,
-      $nor: [
-        // Not owned by authenticated user
-        ...(userId ? [{ userId }] : []),
-        // Not owned by anonymous users with valid owner tokens
-        ...(ownerTokens.length > 0 ? [{ ownerToken: { $in: ownerTokens } }] : [])
-      ]
     };
+    
+    // Only add $nor if there are exclusion conditions
+    if (exclusionConditions.length > 0) {
+      query.$nor = exclusionConditions;
+    }
     
     // Get wishlists that are public and not owned by the user
     const sharedWishlists = await db

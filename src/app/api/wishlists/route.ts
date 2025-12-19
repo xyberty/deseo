@@ -102,14 +102,25 @@ export async function GET() {
       .filter(cookie => cookie.name.startsWith('owner_'))
       .map(cookie => cookie.value);
     
-    // Build the query to find wishlists (exclude archived by default)
+    // Build the query conditions for wishlists
+    const ownershipConditions = [
+      // Wishlists owned by authenticated user
+      ...(userId ? [{ userId }] : []),
+      // Wishlists owned by anonymous users with valid owner tokens
+      ...(ownerTokens.length > 0 ? [{ ownerToken: { $in: ownerTokens } }] : [])
+    ];
+    
+    // If no ownership conditions, return empty arrays (user has no wishlists)
+    if (ownershipConditions.length === 0) {
+      return NextResponse.json({
+        created: [],
+        archived: [],
+      });
+    }
+    
+    // Build the base query with ownership conditions
     const baseQuery = {
-      $or: [
-        // Wishlists owned by authenticated user
-        ...(userId ? [{ userId }] : []),
-        // Wishlists owned by anonymous users with valid owner tokens
-        ...(ownerTokens.length > 0 ? [{ ownerToken: { $in: ownerTokens } }] : [])
-      ]
+      $or: ownershipConditions
     };
     
     // Get active wishlists (exclude archived)
