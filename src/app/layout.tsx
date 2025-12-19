@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { Navbar } from "@/app/components/Navbar";
 import { Footer } from "@/app/components/Footer";
-import { GoogleAnalytics } from "@/app/components/GoogleAnalytics";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { getServerBaseUrl } from "./lib/constants";
 
 const openSans = Open_Sans({
@@ -102,10 +102,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+
   return (
     <html lang="en" className={`${openSans.variable} ${montserrat.variable}`}>
       <body className="bg-background font-sans antialiased">
-        <GoogleAnalytics />
+        {gaId && <GoogleAnalytics gaId={gaId} />}
         <div className="flex min-h-screen flex-col items-center" data-slot="root">
           <div className="container w-full flex-1 flex flex-col">
             <Navbar />
