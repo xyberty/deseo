@@ -3,6 +3,7 @@ import { getDb } from '@/app/lib/mongodb';
 import { cookies } from 'next/headers';
 import { nanoid } from 'nanoid';
 import { verifyToken } from '@/app/lib/jwt';
+import { getServerBaseUrl } from '@/app/lib/constants';
 
 // Force Node.js runtime (required for jsonwebtoken)
 export const runtime = 'nodejs';
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     // Get base URL from request or env var
     // For Request type, we can use the request.url directly
     const requestUrl = new URL(request.url);
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${requestUrl.protocol}//${requestUrl.host}`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${requestUrl.protocol}//${requestUrl.host}` || getServerBaseUrl();
     
     // Create response with wishlist data
     const response = NextResponse.json({

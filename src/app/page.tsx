@@ -11,6 +11,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { useAuth } from '@/app/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';
 import { MagicLinkForm } from '@/app/components/MagicLinkForm';
+import { getBaseUrl } from './lib/constants';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -76,50 +77,177 @@ export default function HomePage() {
   const hasAnyContent = hasCreatedWishlists || hasArchivedWishlists || hasSharedWishlists || hasReservations;
   const hasAnonymousWishlists = !authLoading && !isAuthenticated && hasCreatedWishlists;
 
+  const baseUrl = getBaseUrl()
+
   return (
-    <div className="container mx-auto p-3 sm:p-4 lg:p-6">
-      {!hasAnyContent && (
-        <div className="text-center p-12 border border-dashed rounded-lg my-8">
-          <h2 className="text-xl font-medium mb-2">Welcome to Deseo!</h2>
-          <p className="text-gray-500 mb-6">
-            Your dashboard is empty. Start by creating a wishlist or viewing shared wishlists.
-          </p>
-          <div className="flex flex-col gap-4 max-w-md mx-auto">
-            <Link href="/create" className="w-full">
-              <Button className="w-full">
-                <PenSquare className="h-4 w-4 mr-2" />
-                Create My First Wishlist
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
-      
-      {/* My Wishlists Section */}
-      {(hasCreatedWishlists || hasArchivedWishlists) && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="relative inline-flex items-center">
-              {hasAnonymousWishlists ? (
-                <button
-                  onClick={() => setSavePromptOpen(true)}
-                  className="cursor-pointer hover:opacity-80 transition-opacity relative"
-                  aria-label="Save wishlists to account"
-                >
-                  <PenSquare className="h-5 w-5" />
-                  <span className="absolute -top-0.5 -right-0.5 h-3 w-3 bg-violet-500 rounded-full border-1 border-white shadow-lg z-12"></span>
-                </button>
-              ) : (
-                <PenSquare className="h-5 w-5" />
-              )}
+    <>
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Deseo",
+            "description": "Create and share your wishlists with friends and family. A simple, elegant way to manage your gift lists.",
+            "url": baseUrl,
+            "applicationCategory": "LifestyleApplication",
+            "operatingSystem": "Web",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "Create wishlists",
+              "Share wishlists",
+              "Reserve items",
+              "Public and private lists",
+              "Multiple currencies"
+            ]
+          })
+        }}
+      />
+      <div className="container mx-auto p-3 sm:p-4 lg:p-6">
+        {!hasAnyContent && (
+          <div className="text-center p-12 border border-dashed rounded-lg my-8">
+            <h1 className="text-2xl font-bold mb-2">Welcome to Deseo!</h1>
+            <p className="text-gray-500 mb-6">
+              Your dashboard is empty. Start by creating a wishlist or viewing shared wishlists.
+            </p>
+            <div className="flex flex-col gap-4 max-w-md mx-auto">
+              <Link href="/create" className="w-full">
+                <Button className="w-full">
+                  <PenSquare className="h-4 w-4 mr-2" />
+                  Create My First Wishlist
+                </Button>
+              </Link>
             </div>
-            <h2 className="text-xl font-bold">My Wishlists</h2>
           </div>
-          
-          {/* Active Wishlists */}
-          {hasCreatedWishlists && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              {createdWishlists.map(wishlist => (
+        )}
+        
+        {/* My Wishlists Section */}
+        {(hasCreatedWishlists || hasArchivedWishlists) && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="relative inline-flex items-center">
+                {hasAnonymousWishlists ? (
+                  <button
+                    onClick={() => setSavePromptOpen(true)}
+                    className="cursor-pointer hover:opacity-80 transition-opacity relative"
+                    aria-label="Save wishlists to account"
+                  >
+                    <PenSquare className="h-5 w-5" />
+                    <span className="absolute -top-0.5 -right-0.5 h-3 w-3 bg-violet-500 rounded-full border-1 border-white shadow-lg z-12"></span>
+                  </button>
+                ) : (
+                  <PenSquare className="h-5 w-5" />
+                )}
+              </div>
+              <h2 className="text-xl font-bold">My Wishlists</h2>
+            </div>
+            
+            {/* Active Wishlists */}
+            {hasCreatedWishlists && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {createdWishlists.map(wishlist => (
+                  <Card key={wishlist._id} className="overflow-hidden">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-lg">{wishlist.title}</CardTitle>
+                      {wishlist.description && (
+                        <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <List className="h-4 w-4" />
+                        <span>{wishlist.items.length} items</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {wishlist.isPublic && (
+                          <Badge variant="outline">Public</Badge>
+                        )}
+                        {wishlist.allowEdits && (
+                          <Badge variant="outline">Editable</Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-4 pt-0 border-t flex justify-between">
+                      <div className="text-xs text-gray-500">
+                        <Clock className="h-3 w-3 inline-block mr-1" />
+                        Created {new Date(wishlist.createdAt).toLocaleDateString()}
+                      </div>
+                      <Link href={`/wishlist/${wishlist._id}`}>
+                        <Button size="sm">View</Button>
+                      </Link>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Archived Wishlists Section */}
+            {hasArchivedWishlists && (
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowArchived(!showArchived)}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+                >
+                  <Archive className="h-4 w-4" />
+                  <span className="font-medium">Archived Wishlists ({archivedWishlists.length})</span>
+                  {showArchived ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+                
+                {showArchived && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {archivedWishlists.map(wishlist => (
+                      <Card key={wishlist._id} className="overflow-hidden opacity-75">
+                        <CardHeader className="p-4 pb-2">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg">{wishlist.title}</CardTitle>
+                            <Badge variant="secondary" className="text-xs">Archived</Badge>
+                          </div>
+                          {wishlist.description && (
+                            <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 pt-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <List className="h-4 w-4" />
+                            <span>{wishlist.items.length} items</span>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="p-4 pt-0 border-t flex justify-between">
+                          <div className="text-xs text-gray-500">
+                            <Clock className="h-3 w-3 inline-block mr-1" />
+                            Created {new Date(wishlist.createdAt).toLocaleDateString()}
+                          </div>
+                          <Link href={`/wishlist/${wishlist._id}`}>
+                            <Button size="sm" variant="outline">View</Button>
+                          </Link>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Shared Wishlists Section */}
+        {hasSharedWishlists && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <List className="h-5 w-5" />
+              <h2 className="text-xl font-bold">Shared Wishlists</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sharedWishlists.map(wishlist => (
                 <Card key={wishlist._id} className="overflow-hidden">
                   <CardHeader className="p-4 pb-2">
                     <CardTitle className="text-lg">{wishlist.title}</CardTitle>
@@ -132,19 +260,11 @@ export default function HomePage() {
                       <List className="h-4 w-4" />
                       <span>{wishlist.items.length} items</span>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {wishlist.isPublic && (
-                        <Badge variant="outline">Public</Badge>
-                      )}
-                      {wishlist.allowEdits && (
-                        <Badge variant="outline">Editable</Badge>
-                      )}
-                    </div>
                   </CardContent>
                   <CardFooter className="p-4 pt-0 border-t flex justify-between">
                     <div className="text-xs text-gray-500">
                       <Clock className="h-3 w-3 inline-block mr-1" />
-                      Created {new Date(wishlist.createdAt).toLocaleDateString()}
+                      Updated {new Date(wishlist.updatedAt).toLocaleDateString()}
                     </div>
                     <Link href={`/wishlist/${wishlist._id}`}>
                       <Button size="sm">View</Button>
@@ -153,147 +273,59 @@ export default function HomePage() {
                 </Card>
               ))}
             </div>
-          )}
-          
-          {/* Archived Wishlists Section */}
-          {hasArchivedWishlists && (
-            <div className="mt-6">
-              <button
-                onClick={() => setShowArchived(!showArchived)}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-              >
-                <Archive className="h-4 w-4" />
-                <span className="font-medium">Archived Wishlists ({archivedWishlists.length})</span>
-                {showArchived ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </button>
-              
-              {showArchived && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {archivedWishlists.map(wishlist => (
-                    <Card key={wishlist._id} className="overflow-hidden opacity-75">
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-lg">{wishlist.title}</CardTitle>
-                          <Badge variant="secondary" className="text-xs">Archived</Badge>
-                        </div>
-                        {wishlist.description && (
-                          <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
-                        )}
-                      </CardHeader>
-                      <CardContent className="p-4 pt-2">
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <List className="h-4 w-4" />
-                          <span>{wishlist.items.length} items</span>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="p-4 pt-0 border-t flex justify-between">
-                        <div className="text-xs text-gray-500">
-                          <Clock className="h-3 w-3 inline-block mr-1" />
-                          Created {new Date(wishlist.createdAt).toLocaleDateString()}
-                        </div>
-                        <Link href={`/wishlist/${wishlist._id}`}>
-                          <Button size="sm" variant="outline">View</Button>
-                        </Link>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              )}
+          </div>
+        )}
+        
+        {/* My Reservations Section */}
+        {hasReservations && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Gift className="h-5 w-5" />
+              <h2 className="text-xl font-bold">My Reservations</h2>
             </div>
-          )}
-        </div>
-      )}
-      
-      {/* Shared Wishlists Section */}
-      {hasSharedWishlists && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <List className="h-5 w-5" />
-            <h2 className="text-xl font-bold">Shared Wishlists</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {reservations.map(reservation => (
+                <Card key={reservation.wishlistId} className="overflow-hidden">
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-lg">{reservation.title}</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {reservation.items.length} reserved items
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-2">
+                    <ul className="list-disc list-inside space-y-1 pl-1">
+                      {reservation.items.slice(0, 3).map(item => (
+                        <li key={item.id} className="text-sm truncate">{item.name}</li>
+                      ))}
+                      {reservation.items.length > 3 && (
+                        <li className="text-sm text-gray-500">...and {reservation.items.length - 3} more</li>
+                      )}
+                    </ul>
+                  </CardContent>
+                  <CardFooter className="p-4 pt-0 border-t">
+                    <Link href={`/wishlist/${reservation.wishlistId}`} className="w-full">
+                      <Button size="sm" className="w-full">View Wishlist</Button>
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sharedWishlists.map(wishlist => (
-              <Card key={wishlist._id} className="overflow-hidden">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-lg">{wishlist.title}</CardTitle>
-                  {wishlist.description && (
-                    <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent className="p-4 pt-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <List className="h-4 w-4" />
-                    <span>{wishlist.items.length} items</span>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-4 pt-0 border-t flex justify-between">
-                  <div className="text-xs text-gray-500">
-                    <Clock className="h-3 w-3 inline-block mr-1" />
-                    Updated {new Date(wishlist.updatedAt).toLocaleDateString()}
-                  </div>
-                  <Link href={`/wishlist/${wishlist._id}`}>
-                    <Button size="sm">View</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* My Reservations Section */}
-      {hasReservations && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <Gift className="h-5 w-5" />
-            <h2 className="text-xl font-bold">My Reservations</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {reservations.map(reservation => (
-              <Card key={reservation.wishlistId} className="overflow-hidden">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-lg">{reservation.title}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {reservation.items.length} reserved items
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-2">
-                  <ul className="list-disc list-inside space-y-1 pl-1">
-                    {reservation.items.slice(0, 3).map(item => (
-                      <li key={item.id} className="text-sm truncate">{item.name}</li>
-                    ))}
-                    {reservation.items.length > 3 && (
-                      <li className="text-sm text-gray-500">...and {reservation.items.length - 3} more</li>
-                    )}
-                  </ul>
-                </CardContent>
-                <CardFooter className="p-4 pt-0 border-t">
-                  <Link href={`/wishlist/${reservation.wishlistId}`} className="w-full">
-                    <Button size="sm" className="w-full">View Wishlist</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Save to Account Dialog */}
-      <Dialog open={savePromptOpen} onOpenChange={setSavePromptOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Save Your Wishlists</DialogTitle>
-            <DialogDescription className="text-sm">
-              Sign in with your email to access your wishlists from any device, anytime.
-            </DialogDescription>
-          </DialogHeader>
-          <MagicLinkForm onSuccess={() => setSavePromptOpen(false)} />
-        </DialogContent>
-      </Dialog>
-    </div>
+        {/* Save to Account Dialog */}
+        <Dialog open={savePromptOpen} onOpenChange={setSavePromptOpen}>
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg">Save Your Wishlists</DialogTitle>
+              <DialogDescription className="text-sm">
+                Sign in with your email to access your wishlists from any device, anytime.
+              </DialogDescription>
+            </DialogHeader>
+            <MagicLinkForm onSuccess={() => setSavePromptOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
-} 
+}

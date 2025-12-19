@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { signToken } from '@/app/lib/jwt';
 import { sendMagicLink } from '@/app/lib/email';
 import { rateLimit } from '@/app/lib/rate-limit';
+import { getServerBaseUrl } from '@/app/lib/constants';
 
 // Force Node.js runtime (required for jsonwebtoken)
 export const runtime = 'nodejs';
@@ -33,7 +34,8 @@ export async function POST(request: Request) {
     }
 
     const token = signToken({ email });
-    const magicLink = `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/verify-magic-link?token=${token}`;
+    const baseUrl = getServerBaseUrl();
+    const magicLink = `${baseUrl}/api/auth/verify-magic-link?token=${token}`;
 
     await sendMagicLink(email, magicLink);
 

@@ -17,6 +17,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
+import { getBaseUrl } from '@/app/lib/constants';
 
 // Define user permissions interface
 interface UserPermissions {
@@ -450,15 +451,53 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     );
   }
 
+  const baseUrl = getBaseUrl()
+  const wishlistUrl = `${baseUrl}/wishlist/${resolvedParams.id}`
+
   return (
-    <div className="mx-auto p-3 sm:p-4">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading break-words">{wishlist.title}</h1>
-          {wishlist.description && (
-            <p className="text-gray-600 mt-1 break-words">{wishlist.description}</p>
-          )}
-        </div>
+    <>
+      {/* Structured Data for SEO */}
+      {wishlist.isPublic && !wishlist.isArchived && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ItemList",
+              "name": wishlist.title,
+              "description": wishlist.description || `A wishlist with ${wishlist.items.length} items`,
+              "url": wishlistUrl,
+              "numberOfItems": wishlist.items.length,
+              "itemListElement": wishlist.items.map((item, index) => ({
+                "@type": "ListItem",
+                "position": index + 1,
+                "item": {
+                  "@type": "Product",
+                  "name": item.name,
+                  "description": item.description,
+                  ...(item.price && {
+                    "offers": {
+                      "@type": "Offer",
+                      "price": item.price,
+                      "priceCurrency": item.currency || wishlist.currency || "USD"
+                    }
+                  }),
+                  ...(item.url && { "url": item.url }),
+                  ...(item.imageUrl && { "image": item.imageUrl })
+                }
+              }))
+            })
+          }}
+        />
+      )}
+      <div className="mx-auto p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold font-heading break-words">{wishlist.title}</h1>
+            {wishlist.description && (
+              <p className="text-gray-600 mt-1 break-words">{wishlist.description}</p>
+            )}
+          </div>
         
         <div className="flex gap-2 flex-shrink-0">
           {/* Only show settings/share for wishlist owners */}
@@ -1215,5 +1254,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 } 
