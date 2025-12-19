@@ -45,7 +45,10 @@ export async function GET() {
     ];
     
     // Build the query to find shared wishlists
-    const query: any = {
+    const query: {
+      isPublic: boolean;
+      $nor?: Array<{ userId?: string } | { ownerToken?: { $in: string[] } }>;
+    } = {
       isPublic: true,
     };
     
