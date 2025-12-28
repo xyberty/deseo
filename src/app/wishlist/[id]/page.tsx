@@ -16,13 +16,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import Image from 'next/image';
-import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/app/components/ui/drawer";
+import { DrawerClose } from "@/app/components/ui/drawer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
 import { Switch } from "@/app/components/ui/switch";
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from "@/app/components/ui/field";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
 import { getBaseUrl } from '@/app/lib/constants';
+import { ResponsiveDialog } from '@/app/components/ResponsiveDialog';
+import { SettingsForm } from '@/app/components/SettingsForm';
+import { ReserveItemForm } from '@/app/components/ReserveItemForm';
+import { AddItemDialog } from '@/app/components/AddItemDialog';
+import { DeleteItemDialog } from '@/app/components/DeleteItemDialog';
 
 // Define user permissions interface
 interface UserPermissions {
@@ -30,152 +35,6 @@ interface UserPermissions {
   isOwner: boolean;
 }
 
-// Add Item Form Component
-interface AddItemFormProps {
-  newItemName: string;
-  setNewItemName: (value: string) => void;
-  newItemDescription: string;
-  setNewItemDescription: (value: string) => void;
-  newItemPrice: string;
-  setNewItemPrice: (value: string) => void;
-  newItemCurrency: string;
-  setNewItemCurrency: (value: string) => void;
-  newItemUrl: string;
-  setNewItemUrl: (value: string) => void;
-  newItemImageUrl: string;
-  setNewItemImageUrl: (value: string) => void;
-  handleAddItem: (e: React.FormEvent) => void;
-  autoFocus?: boolean;
-}
-
-function AddItemForm({
-  newItemName,
-  setNewItemName,
-  newItemDescription,
-  setNewItemDescription,
-  newItemPrice,
-  setNewItemPrice,
-  newItemCurrency,
-  setNewItemCurrency,
-  newItemUrl,
-  setNewItemUrl,
-  newItemImageUrl,
-  setNewItemImageUrl,
-  handleAddItem,
-  autoFocus = false,
-}: AddItemFormProps) {
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (autoFocus && nameInputRef.current) {
-      // Small delay to ensure the input is rendered
-      setTimeout(() => {
-        nameInputRef.current?.focus();
-      }, 100);
-    }
-  }, [autoFocus]);
-
-  return (
-    <form onSubmit={handleAddItem} className="space-y-4">
-      {/* Required fields */}
-      <div className="grid gap-2">
-        <div className="grid gap-1">
-          <Label htmlFor="name">Title *</Label>
-          <Input 
-            id="name"
-            ref={nameInputRef}
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            placeholder="Enter item name"
-            autoComplete="off"
-            required
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label htmlFor="url">URL</Label>
-          <Input 
-            id="url"
-            type="url"
-            value={newItemUrl}
-            onChange={(e) => setNewItemUrl(e.target.value)}
-            placeholder="https://example.com/item"
-            autoComplete="off"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label htmlFor="price">Price</Label>
-          <div className="flex gap-2">
-            <Input 
-              id="price"
-              type="number"
-              value={newItemPrice}
-              onChange={(e) => setNewItemPrice(e.target.value)}
-              placeholder="Enter price"
-              min="0"
-              step="0.01"
-              className="flex-1"
-              autoComplete="off"
-            />
-            <Select 
-              value={newItemCurrency} 
-              onValueChange={setNewItemCurrency}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {CURRENCIES.map((curr) => (
-                  <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                    {curr.alpha3} — {curr.symbol}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      {/* Optional fields in Collapsible */}
-      <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
-        <CollapsibleTrigger asChild>
-          <Button type="button" variant="ghost" className="w-full justify-between">
-            <span>More details</span>
-            <span><ChevronsUpDown /></span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 pt-2">
-          <div className="grid gap-1">
-            <Label htmlFor="description">Description</Label>
-            <Textarea 
-              id="description"
-              value={newItemDescription}
-              onChange={(e) => setNewItemDescription(e.target.value)}
-              placeholder="Add a description"
-              rows={3}
-            />
-          </div>
-          <div className="grid gap-1">
-            <Label htmlFor="imageUrl">Image URL</Label>
-            <Input 
-              id="imageUrl"
-              type="url"
-              value={newItemImageUrl}
-              onChange={(e) => setNewItemImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              autoComplete="off"
-            />
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Desktop only - Save button (mobile has sticky footer) */}
-      <div className="hidden md:flex justify-end gap-2 pt-2">
-        <Button type="submit">Save</Button>
-      </div>
-    </form>
-  );
-}
 
 // Edit Item Form Component
 interface EditItemFormProps {
@@ -317,12 +176,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [isLoading, setIsLoading] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemDescription, setNewItemDescription] = useState('');
-  const [newItemPrice, setNewItemPrice] = useState('');
-  const [newItemCurrency, setNewItemCurrency] = useState<string>(DEFAULT_CURRENCY);
-  const [newItemUrl, setNewItemUrl] = useState('');
-  const [newItemImageUrl, setNewItemImageUrl] = useState('');
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -352,19 +205,11 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [listCurrency, setListCurrency] = useState(DEFAULT_CURRENCY);
   const [isArchived, setIsArchived] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handleAddItemDialogChange = (open: boolean) => {
     setAddItemOpen(open);
-    if (!open) {
-      // Reset form when closing
-      setNewItemName('');
-      setNewItemDescription('');
-      setNewItemPrice('');
-      setNewItemCurrency(listCurrency);
-      setNewItemUrl('');
-      setNewItemImageUrl('');
-    }
   };
   
   // Add keyboard event listener for Escape key
@@ -396,8 +241,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       setWishlistDescription(wishlist.description || '');
       const currentListCurrency = wishlist.currency || DEFAULT_CURRENCY;
       setListCurrency(currentListCurrency);
-      // Update new item currency to match list currency when wishlist loads
-      setNewItemCurrency(currentListCurrency);
     }
   }, [wishlist, resolvedParams.id]);
 
@@ -523,65 +366,22 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     fetchUserReservations();
   }, [fetchWishlist, fetchUserReservations]);
   
-  const handleAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!wishlist) return;
-
-    try {
-      // Only include currency if it's different from list's currency
-      const itemCurrency = newItemCurrency !== listCurrency ? newItemCurrency : undefined;
-      
-      const response = await fetch(`/api/wishlists/${resolvedParams.id}/items`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newItemName,
-          description: newItemDescription,
-          price: newItemPrice ? parseFloat(newItemPrice) : undefined,
-          currency: itemCurrency,
-          url: newItemUrl,
-          imageUrl: newItemImageUrl
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to add item');
-
-      const data = await response.json();
-      const newItemId = data.item?.id;
-
-      // Reset form
-      setNewItemName('');
-      setNewItemDescription('');
-      setNewItemPrice('');
-      setNewItemCurrency(listCurrency);
-      setNewItemUrl('');
-      setNewItemImageUrl('');
-
-      // Close the drawer/dialog
-      setAddItemOpen(false);
-
-      // Refresh wishlist
-      await fetchWishlist();
-
-      toast.success('Item added successfully');
-
-      // Scroll to the new item and highlight it
-      setTimeout(() => {
-        const itemElement = document.querySelector(`[data-item-id="${newItemId}"]`);
-        if (itemElement) {
-          itemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          itemElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
-          setTimeout(() => {
-            itemElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
-          }, 2000);
-        }
-      }, 100);
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to add item',
-      });
-    }
-  };
+  const handleItemAdded = useCallback((itemId: string) => {
+    // Refresh wishlist
+    fetchWishlist();
+    
+    // Scroll to the new item and highlight it
+    setTimeout(() => {
+      const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+      if (itemElement) {
+        itemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        itemElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+        setTimeout(() => {
+          itemElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+        }, 2000);
+      }
+    }, 100);
+  }, [fetchWishlist]);
 
   const handleEditItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -617,9 +417,10 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     }
   };
 
-  const handleDeleteItem = async () => {
+  const handleDeleteItemConfirm = async () => {
     if (!wishlist || !itemToDelete) return;
 
+    setIsDeletingItem(true);
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}/items/${itemToDelete.id}`, {
         method: 'DELETE',
@@ -635,6 +436,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to delete item',
       });
+    } finally {
+      setIsDeletingItem(false);
     }
   };
 
@@ -883,72 +686,19 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
           {/* Show "Add Item" button only for users with edit permission and not archived */}
           {userPermissions.canEdit && !wishlist.isArchived && (
             <>
-              {isDesktop ? (
-                <Dialog open={addItemOpen} onOpenChange={handleAddItemDialogChange}>
-                  <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
-                    <DialogHeader>
-                      <DialogTitle>Add Item</DialogTitle>
-                    </DialogHeader>
-                    <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
-                      <AddItemForm
-                        newItemName={newItemName}
-                        setNewItemName={setNewItemName}
-                        newItemDescription={newItemDescription}
-                        setNewItemDescription={setNewItemDescription}
-                        newItemPrice={newItemPrice}
-                        setNewItemPrice={setNewItemPrice}
-                        newItemCurrency={newItemCurrency}
-                        setNewItemCurrency={setNewItemCurrency}
-                        newItemUrl={newItemUrl}
-                        setNewItemUrl={setNewItemUrl}
-                        newItemImageUrl={newItemImageUrl}
-                        setNewItemImageUrl={setNewItemImageUrl}
-                        handleAddItem={handleAddItem}
-                        autoFocus={true}
-                      />
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              ) : (
-                <Drawer open={addItemOpen} onOpenChange={handleAddItemDialogChange}>
-                  <DrawerTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4" />
-                      Add Item
-                    </Button>
-                  </DrawerTrigger>
-                  <DrawerContent className="max-h-[90vh]">
-                    <div className="mx-auto w-full max-w-sm">
-                      <DrawerHeader className="text-left pb-2 px-4 pt-2">
-                        <DrawerTitle className="text-base">Add Item</DrawerTitle>
-                      </DrawerHeader>
-                      <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(90vh - 140px)' }}>
-                        <AddItemForm
-                          newItemName={newItemName}
-                          setNewItemName={setNewItemName}
-                          newItemDescription={newItemDescription}
-                          setNewItemDescription={setNewItemDescription}
-                          newItemPrice={newItemPrice}
-                          setNewItemPrice={setNewItemPrice}
-                          newItemCurrency={newItemCurrency}
-                          setNewItemCurrency={setNewItemCurrency}
-                          newItemUrl={newItemUrl}
-                          setNewItemUrl={setNewItemUrl}
-                          newItemImageUrl={newItemImageUrl}
-                          setNewItemImageUrl={setNewItemImageUrl}
-                          handleAddItem={handleAddItem}
-                        />
-                      </div>
-                      <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
-                        <Button onClick={handleAddItem} className="w-full">Save</Button>
-                        <DrawerClose asChild>
-                          <Button variant="outline" className="w-full">Cancel</Button>
-                        </DrawerClose>
-                      </DrawerFooter>
-                    </div>
-                  </DrawerContent>
-                </Drawer>
-              )}
+              <AddItemDialog
+                wishlistId={resolvedParams.id}
+                listCurrency={listCurrency}
+                open={addItemOpen}
+                onOpenChange={handleAddItemDialogChange}
+                onItemAdded={handleItemAdded}
+                trigger={!isDesktop ? (
+                  <Button>
+                    <Plus className="h-4 w-4" />
+                    Add Item
+                  </Button>
+                ) : undefined}
+              />
               {isDesktop && (
                 <Button onClick={() => setAddItemOpen(true)}>
                   <Plus className="h-4 w-4" />
@@ -990,599 +740,69 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* Settings Dialog/Drawer */}
-      {isDesktop ? (
-        <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-            <DialogHeader>
-              <div className="flex items-center justify-between">
-                <DialogTitle>Wishlist Settings</DialogTitle>
-                {isArchived && (
-                  <Badge variant="secondary" className="text-xs">
-                    Archived
-                  </Badge>
-                )}
-              </div>
-            </DialogHeader>
-            <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
-              <FieldGroup className="py-4 pb-8">
-                {/* Details Section */}
-                <FieldSet>
-                  <FieldLegend>Details</FieldLegend>
-                  <FieldGroup>
-                    <Field>
-                      <FieldLabel htmlFor="wishlist-title">Title</FieldLabel>
-                      <Input
-                        id="wishlist-title"
-                        value={wishlistTitle}
-                        onChange={(e) => setWishlistTitle(e.target.value)}
-                        placeholder="Enter wishlist title"
-                        disabled={isArchived}
-                        autoComplete="off"
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="wishlist-description">Description</FieldLabel>
-                      <Textarea
-                        id="wishlist-description"
-                        value={wishlistDescription}
-                        onChange={(e) => setWishlistDescription(e.target.value)}
-                        placeholder="Add a description for your wishlist"
-                        rows={3}
-                        disabled={isArchived}
-                      />
-                      <FieldDescription>(optional)</FieldDescription>
-                    </Field>
-                  </FieldGroup>
-                </FieldSet>
-
-                <FieldSeparator />
-
-                {/* Currency Section */}
-                <FieldSet>
-                  <FieldLegend>Currency</FieldLegend>
-                  <FieldGroup>
-                    <Field orientation="responsive">
-                      <FieldContent>
-                        <FieldLabel htmlFor="currency-select">Default Currency</FieldLabel>
-                        <FieldDescription>Items will use this currency by default</FieldDescription>
-                      </FieldContent>
-                      <Select value={listCurrency} onValueChange={setListCurrency} disabled={isArchived}>
-                        <SelectTrigger id="currency-select">
-                          <SelectValue placeholder="Select currency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CURRENCIES.map((curr) => (
-                            <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                              {curr.alpha3} — {curr.symbol}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </FieldGroup>
-                </FieldSet>
-
-                <FieldSeparator />
-
-                {/* Sharing Section */}
-                <FieldSet>
-                  <FieldLegend>Sharing</FieldLegend>
-                  <FieldGroup>
-                    <Field>
-                      <FieldLabel htmlFor="short-link">Short Link</FieldLabel>
-                      <div className="flex gap-2">
-                        <Input 
-                          id="short-link"
-                          value={shortUrl || 'Generating...'} 
-                          readOnly 
-                          onClick={(e) => e.currentTarget.select()}
-                          disabled={isArchived}
-                          className="font-mono text-xs sm:text-sm"
-                        />
-                        <Button variant="outline" onClick={copyShareLink} disabled={isArchived || !shortUrl}>
-                          Copy
-                        </Button>
-                      </div>
-                    </Field>
-                    
-                    {/* Custom Code Editor */}
-                    {userPermissions.isOwner && !isArchived && (
-                      <Field>
-                        {!isCustomCodeEditing ? (
-                          <div className="flex items-center gap-2">
-                            <FieldDescription>
-                              Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
-                            </FieldDescription>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setCustomCode(shortCode || '');
-                                setIsCustomCodeEditing(true);
-                              }}
-                              className="h-7 px-2 text-xs"
-                            >
-                              <Pencil className="h-3 w-3 mr-1" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <FieldLabel htmlFor="custom-code">Custom Code</FieldLabel>
-                            <div className="flex gap-2">
-                              <Input
-                                id="custom-code"
-                                value={customCode}
-                                onChange={(e) => setCustomCode(e.target.value)}
-                                placeholder="Enter custom code (3-20 chars)"
-                                className="font-mono text-xs sm:text-sm"
-                                maxLength={20}
-                                autoComplete="off"
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={updateCustomCode}
-                                disabled={!customCode.trim() || customCode.trim().length < 3}
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setIsCustomCodeEditing(false);
-                                  setCustomCode(shortCode || '');
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                            <FieldDescription>Alphanumeric only, 3-20 characters</FieldDescription>
-                          </>
-                        )}
-                      </Field>
-                    )}
-                    
-                    {/* Full Link (Collapsible) */}
-                    <Field>
-                      <Collapsible>
-                        <CollapsibleTrigger asChild>
-                          <Button type="button" variant="ghost" className="w-full justify-between text-sm">
-                            <span>Show full link</span>
-                            <ChevronsUpDown className="h-4 w-4" />
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="space-y-2 pt-2">
-                          <div className="flex gap-2">
-                            <Input 
-                              value={shareUrl} 
-                              readOnly 
-                              onClick={(e) => e.currentTarget.select()}
-                              disabled={isArchived}
-                              className="font-mono text-xs break-all"
-                            />
-                            <Button variant="outline" size="sm" onClick={() => {
-                              navigator.clipboard.writeText(shareUrl);
-                              toast.success('Full link copied');
-                            }} disabled={isArchived}>
-                              Copy
-                            </Button>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </Field>
-
-                    {/* Analytics Section */}
-                    {analytics && userPermissions.isOwner && (
-                      <Field>
-                        <FieldLabel>Link Analytics</FieldLabel>
-                        <div className="flex gap-4">
-                          <div>
-                            <p className="text-sm"><span className="text-muted-foreground">Total clicks:</span> {analytics.totalClicks}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm"><span className="text-muted-foreground">Today:</span> {analytics.clicksByDate.length > 0 
-                                ? analytics.clicksByDate[analytics.clicksByDate.length - 1].count 
-                                : 0}
-                            </p>
-                          </div>
-                        </div>
-                        {analytics.recentClicks.length > 0 && (
-                          <Collapsible>
-                            <CollapsibleTrigger asChild>
-                              <Button type="button" variant="ghost" className="w-full justify-between text-sm mt-2">
-                                <span>Recent clicks ({analytics.recentClicks.length})</span>
-                                <ChevronsUpDown className="h-4 w-4" />
-                              </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                                {analytics.recentClicks.map((click, idx) => (
-                                  <div key={idx} className="text-sm text-muted-foreground py-1 border-b">
-                                    {new Date(click.clickedAt).toLocaleString()}
-                                    {click.referer && (
-                                      <span className="ml-2 text-muted-foreground/70">from {new URL(click.referer).hostname}</span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        )}
-                      </Field>
-                    )}
-                  </FieldGroup>
-                </FieldSet>
-
-                <FieldSeparator />
-
-                {/* Privacy Section */}
-                <FieldSet>
-                  <FieldLegend>Privacy</FieldLegend>
-                  <FieldGroup>
-                    <Field orientation="horizontal">
-                      <FieldContent>
-                        <FieldLabel htmlFor="public-toggle">Public Wishlist</FieldLabel>
-                        <FieldDescription>Anyone can view using just the wishlist ID.</FieldDescription>
-                      </FieldContent>
-                      <Switch
-                        id="public-toggle"
-                        checked={isPublic}
-                        onCheckedChange={setIsPublic}
-                        disabled={isArchived}
-                      />
-                    </Field>
-                    <Field orientation="horizontal">
-                      <FieldContent>
-                        <FieldLabel htmlFor="edits-toggle">Allow Edits</FieldLabel>
-                        <FieldDescription>Anyone with access can add or edit items</FieldDescription>
-                      </FieldContent>
-                      <Switch
-                        id="edits-toggle"
-                        checked={allowEdits}
-                        onCheckedChange={setAllowEdits}
-                        disabled={isArchived}
-                      />
-                    </Field>
-                  </FieldGroup>
-                </FieldSet>
-
-                <FieldSeparator />
-
-                {/* Danger Zone */}
-                <FieldSet>
-                  <FieldLegend className="text-destructive">Danger Zone</FieldLegend>
-                  <FieldGroup>
-                    <Field>
-                      <FieldDescription>Once you delete a wishlist, there is no going back. Please be certain.</FieldDescription>
-                      <Button 
-                        variant="destructive" 
-                        onClick={() => {
-                          setShowSettingsDialog(false);
-                          setShowDeleteDialog(true);
-                        }}
-                      >
-                        Delete Wishlist
-                      </Button>
-                    </Field>
-                  </FieldGroup>
-                </FieldSet>
-              </FieldGroup>
-            </div>
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setShowSettingsDialog(false)} className="w-full sm:w-auto">
-                Cancel
-              </Button>
-              <Button 
-                variant={isArchived ? "default" : "outline"}
-                onClick={handleArchiveToggle}
-                className="w-full sm:w-auto"
-              >
-                {isArchived ? 'Unarchive' : 'Archive'}
-              </Button>
-              <Button onClick={updatePrivacySettings} disabled={isArchived} className="w-full sm:w-auto">
-                Save Changes
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-          <DrawerContent className="max-h-[90vh]">
-            <div className="mx-auto w-full max-w-sm">
-              <DrawerHeader className="text-left pb-2 px-4 pt-2">
-                <div className="flex items-center justify-between">
-                  <DrawerTitle className="text-base">Wishlist Settings</DrawerTitle>
-                  {isArchived && (
-                    <Badge variant="secondary" className="text-xs">
-                      Archived
-                    </Badge>
-                  )}
-                </div>
-              </DrawerHeader>
-              <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(90vh - 140px)', paddingBottom: '2rem' }}>
-                <FieldGroup className="py-4 pb-8">
-                  {/* Details Section */}
-                  <FieldSet>
-                    <FieldLegend variant="label">Details</FieldLegend>
-                    <FieldGroup>
-                      <Field>
-                        <FieldLabel htmlFor="wishlist-title-mobile">Title</FieldLabel>
-                        <Input
-                          id="wishlist-title-mobile"
-                          value={wishlistTitle}
-                          onChange={(e) => setWishlistTitle(e.target.value)}
-                          placeholder="Enter wishlist title"
-                          disabled={isArchived}
-                          autoComplete="off"
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="wishlist-description-mobile">Description</FieldLabel>
-                        <Textarea
-                          id="wishlist-description-mobile"
-                          value={wishlistDescription}
-                          onChange={(e) => setWishlistDescription(e.target.value)}
-                          placeholder="Add a description for your wishlist"
-                          rows={3}
-                          disabled={isArchived}
-                        />
-                        <FieldDescription>(optional)</FieldDescription>
-                      </Field>
-                    </FieldGroup>
-                  </FieldSet>
-
-                  <FieldSeparator />
-
-                  {/* Currency Section */}
-                  <FieldSet>
-                    <FieldLegend variant="label">Currency</FieldLegend>
-                    <FieldGroup>
-                      <Field orientation="responsive">
-                        <FieldLabel htmlFor="currency-select-mobile">Default Currency</FieldLabel>
-                        <FieldDescription>Items will use this currency by default</FieldDescription>
-                        <Select value={listCurrency} onValueChange={setListCurrency} disabled={isArchived}>
-                          <SelectTrigger id="currency-select-mobile">
-                            <SelectValue placeholder="Select currency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CURRENCIES.map((curr) => (
-                              <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                                {curr.alpha3} — {curr.symbol}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    </FieldGroup>
-                  </FieldSet>
-
-                  <FieldSeparator />
-
-                  {/* Sharing Section */}
-                  <FieldSet>
-                    <FieldLegend variant="label">Sharing</FieldLegend>
-                    <FieldGroup>
-                      <Field>
-                        <FieldLabel htmlFor="short-link-mobile">Short Link</FieldLabel>
-                        <div className="flex gap-2">
-                          <Input 
-                            id="short-link-mobile"
-                            value={shortUrl || 'Generating...'} 
-                            readOnly 
-                            onClick={(e) => e.currentTarget.select()}
-                            disabled={isArchived}
-                            className="font-mono text-xs"
-                          />
-                          <Button variant="outline" onClick={copyShareLink} disabled={isArchived || !shortUrl}>
-                            Copy
-                          </Button>
-                        </div>
-                      </Field>
-                      
-                      {/* Custom Code Editor */}
-                      {userPermissions.isOwner && !isArchived && (
-                        <Field>
-                          {!isCustomCodeEditing ? (
-                            <div className="flex items-center gap-2">
-                              <FieldDescription>
-                                Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
-                              </FieldDescription>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setCustomCode(shortCode || '');
-                                  setIsCustomCodeEditing(true);
-                                }}
-                                className="h-7 px-2 text-xs"
-                              >
-                                <Pencil className="h-3 w-3 mr-1" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <>
-                              <FieldLabel htmlFor="custom-code-mobile">Custom Code</FieldLabel>
-                              <Input
-                                id="custom-code-mobile"
-                                value={customCode}
-                                onChange={(e) => setCustomCode(e.target.value)}
-                                placeholder="Enter custom code (3-20 chars)"
-                                className="font-mono text-xs"
-                                maxLength={20}
-                                autoComplete="off"
-                              />
-                              <FieldDescription>Alphanumeric only, 3-20 characters</FieldDescription>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={updateCustomCode}
-                                  disabled={!customCode.trim() || customCode.trim().length < 3}
-                                  className="flex-1"
-                                >
-                                  Save
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setIsCustomCodeEditing(false);
-                                    setCustomCode(shortCode || '');
-                                  }}
-                                  className="flex-1"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </>
-                          )}
-                        </Field>
-                      )}
-                      
-                      {/* Full Link (Collapsible) */}
-                      <Field>
-                        <Collapsible>
-                          <CollapsibleTrigger asChild>
-                            <Button type="button" variant="ghost" className="w-full justify-between text-sm">
-                              <span>Show full link</span>
-                              <ChevronsUpDown className="h-4 w-4" />
-                            </Button>
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="space-y-2 pt-2">
-                            <div className="flex gap-2">
-                              <Input 
-                                value={shareUrl} 
-                                readOnly 
-                                onClick={(e) => e.currentTarget.select()}
-                                disabled={isArchived}
-                                className="font-mono text-xs break-all"
-                              />
-                              <Button variant="outline" size="sm" onClick={() => {
-                                navigator.clipboard.writeText(shareUrl);
-                                toast.success('Full link copied');
-                              }} disabled={isArchived}>
-                                Copy
-                              </Button>
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </Field>
-
-                      {/* Analytics Section */}
-                      {analytics && userPermissions.isOwner && (
-                        <Field>
-                          <FieldLabel>Link Analytics</FieldLabel>
-                          <div className="flex gap-4">
-                            <div>
-                              <p className="text-sm"><span className="text-muted-foreground">Total clicks:</span> {analytics.totalClicks}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm"><span className="text-muted-foreground">Today:</span> {analytics.clicksByDate.length > 0 
-                                  ? analytics.clicksByDate[analytics.clicksByDate.length - 1].count 
-                                  : 0}
-                              </p>
-                            </div>
-                          </div>
-                          {analytics.recentClicks.length > 0 && (
-                            <Collapsible>
-                              <CollapsibleTrigger asChild>
-                                <Button type="button" variant="ghost" className="w-full justify-between text-sm mt-2">
-                                  <span>Recent clicks ({analytics.recentClicks.length})</span>
-                                  <ChevronsUpDown className="h-4 w-4" />
-                                </Button>
-                              </CollapsibleTrigger>
-                              <CollapsibleContent>
-                                <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                                  {analytics.recentClicks.map((click, idx) => (
-                                    <div key={idx} className="text-sm text-muted-foreground py-1 border-b">
-                                      {new Date(click.clickedAt).toLocaleString()}
-                                      {click.referer && (
-                                        <span className="ml-2 text-muted-foreground/70">from {new URL(click.referer).hostname}</span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </CollapsibleContent>
-                            </Collapsible>
-                          )}
-                        </Field>
-                      )}
-                    </FieldGroup>
-                  </FieldSet>
-
-                  <FieldSeparator />
-
-                  {/* Privacy Section */}
-                  <FieldSet>
-                    <FieldLegend variant="label">Privacy</FieldLegend>
-                    <FieldGroup>
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldLabel htmlFor="public-toggle-mobile">Public Wishlist</FieldLabel>
-                          <FieldDescription>Anyone can view using just the wishlist ID.</FieldDescription>
-                        </FieldContent>
-                        <Switch
-                          id="public-toggle-mobile"
-                          checked={isPublic}
-                          onCheckedChange={setIsPublic}
-                          disabled={isArchived}
-                        />
-                      </Field>
-                      <Field orientation="horizontal">
-                        <FieldContent>
-                          <FieldLabel htmlFor="edits-toggle-mobile">Allow Edits</FieldLabel>
-                          <FieldDescription>Anyone with access can add or edit items</FieldDescription>
-                        </FieldContent>
-                        <Switch
-                          id="edits-toggle-mobile"
-                          checked={allowEdits}
-                          onCheckedChange={setAllowEdits}
-                          disabled={isArchived}
-                        />
-                      </Field>
-                    </FieldGroup>
-                  </FieldSet>
-
-                  <FieldSeparator />
-
-                  {/* Danger Zone */}
-                  <FieldSet>
-                    <FieldLegend variant="label" className="text-destructive">Danger Zone</FieldLegend>
-                    <FieldGroup>
-                      <Field>
-                        <FieldDescription>Once you delete a wishlist, there is no going back. Please be certain.</FieldDescription>
-                        <Button 
-                          variant="destructive" 
-                          onClick={() => {
-                            setShowSettingsDialog(false);
-                            setShowDeleteDialog(true);
-                          }}
-                        >
-                          Delete Wishlist
-                        </Button>
-                      </Field>
-                    </FieldGroup>
-                  </FieldSet>
-                </FieldGroup>
-              </div>
-              <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
-                <Button onClick={updatePrivacySettings} disabled={isArchived} className="w-full">Save Changes</Button>
-                <Button 
-                  variant={isArchived ? "default" : "outline"}
-                  onClick={handleArchiveToggle}
-                  className="w-full"
-                >
-                  {isArchived ? 'Unarchive' : 'Archive'}
-                </Button>
-                <DrawerClose asChild>
-                  <Button variant="outline" className="w-full">Cancel</Button>
-                </DrawerClose>
-              </DrawerFooter>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      <ResponsiveDialog
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
+        title={
+          <div className="flex items-center justify-between">
+            <span>Wishlist Settings</span>
+            {isArchived && (
+              <Badge variant="secondary" className="text-xs">
+                Archived
+              </Badge>
+            )}
+          </div>
+        }
+        contentClassName="sm:max-w-[600px]"
+        footer={
+          <>
+            <Button size="lg" className="w-full sm:w-auto">
+              Save Changes
+            </Button>
+            <Button 
+              variant={isArchived ? "default" : "secondary"}
+              size="lg"
+              onClick={handleArchiveToggle}
+              className="w-full sm:w-auto"
+            >
+              {isArchived ? 'Unarchive' : 'Archive'}
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => setShowSettingsDialog(false)} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+          </>
+        }
+      >
+        <SettingsForm
+          wishlistTitle={wishlistTitle}
+          setWishlistTitle={setWishlistTitle}
+          wishlistDescription={wishlistDescription}
+          setWishlistDescription={setWishlistDescription}
+          listCurrency={listCurrency}
+          setListCurrency={setListCurrency}
+          isPublic={isPublic}
+          setIsPublic={setIsPublic}
+          allowEdits={allowEdits}
+          setAllowEdits={setAllowEdits}
+          isArchived={isArchived}
+          shareUrl={shareUrl}
+          shortUrl={shortUrl}
+          shortCode={shortCode}
+          customCode={customCode}
+          setCustomCode={setCustomCode}
+          isCustomCodeEditing={isCustomCodeEditing}
+          setIsCustomCodeEditing={setIsCustomCodeEditing}
+          updateCustomCode={updateCustomCode}
+          copyShareLink={copyShareLink}
+          analytics={analytics}
+          userPermissions={userPermissions}
+          isMobile={!isDesktop}
+          onDeleteClick={() => {
+            setShowSettingsDialog(false);
+            setShowDeleteDialog(true);
+          }}
+        />
+      </ResponsiveDialog>
 
       {/* Delete Wishlist Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -1751,219 +971,84 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* Edit Dialog/Drawer */}
-      {isDesktop ? (
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Edit Item</DialogTitle>
-            </DialogHeader>
-            <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
-              <EditItemForm
-                editingItem={editingItem}
-                setEditingItem={setEditingItem}
-                listCurrency={listCurrency}
-                handleEditItem={handleEditItem}
-                autoFocus={true}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <div className="mx-auto w-full max-w-sm">
-              <DrawerHeader className="text-left pb-2 px-4 pt-2">
-                <DrawerTitle className="text-base">Edit Item</DrawerTitle>
-              </DrawerHeader>
-              <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(90vh - 140px)' }}>
-                <EditItemForm
-                  editingItem={editingItem}
-                  setEditingItem={setEditingItem}
-                  listCurrency={listCurrency}
-                  handleEditItem={handleEditItem}
-                />
-              </div>
-              <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
-                <Button onClick={handleEditItem} className="w-full">Save Changes</Button>
-                <DrawerClose asChild>
-                  <Button variant="outline" className="w-full">Cancel</Button>
-                </DrawerClose>
-              </DrawerFooter>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      <ResponsiveDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        title="Edit Item"
+        footer={!isDesktop ? (
+          <>
+            <Button size="lg" onClick={handleEditItem} className="w-full">Save Changes</Button>
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full">Cancel</Button>
+            </DrawerClose>
+          </>
+        ) : undefined}
+      >
+        <EditItemForm
+          editingItem={editingItem}
+          setEditingItem={setEditingItem}
+          listCurrency={listCurrency}
+          handleEditItem={handleEditItem}
+          autoFocus={isDesktop}
+        />
+      </ResponsiveDialog>
 
-      {/* Delete Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Delete Item</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>Are you sure you want to delete &quot;{itemToDelete?.name}&quot;? This action cannot be undone.</p>
-          </div>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="w-full sm:w-auto">
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteItem} className="w-full sm:w-auto">
-              Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Item Dialog */}
+      <DeleteItemDialog
+        item={itemToDelete}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteItemConfirm}
+        isLoading={isDeletingItem}
+      />
 
       {/* Reserve Dialog/Drawer */}
-      {isDesktop ? (
-        <Dialog open={reserveDialogOpen} onOpenChange={setReserveDialogOpen}>
-          <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Reserve Item</DialogTitle>
-            </DialogHeader>
-            <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
-              <form onSubmit={handleReserveItem} id="reserve-item-form" className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="reserver-email">Your Email (optional)</Label>
-                  <Input
-                    id="reserver-email"
-                    type="email"
-                    autoComplete="off"
-                    value={reserverEmail}
-                    onChange={(e) => setReserverEmail(e.target.value)}
-                    placeholder="Enter your email to receive updates"
-                    autoFocus
-                  />
-                  <p className="text-xs text-gray-500">
-                    {allowDisclosure && !reserverEmail && !displayName ? 
-                      "Please provide either an email or display name if you want to be identified" : 
-                      "Your email will only be visible to the wishlist creator if you allow disclosure"}
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="display-name">Display Name (optional)</Label>
-                  <Input
-                    id="display-name"
-                    type="text"
-                    autoComplete="off"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="How you'd like to be identified"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="passphrase">Passphrase (optional)</Label>
-                  <Input
-                    id="passphrase"
-                    type="text"
-                    autoComplete="off"
-                    value={passphrase}
-                    onChange={(e) => setPassphrase(e.target.value)}
-                    placeholder="A secret word to identify your reservation"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="allow-disclosure" className="text-sm font-medium">
-                      Allow the creator to see my identity
-                    </Label>
-                  </div>
-                  <Switch
-                    id="allow-disclosure"
-                    checked={allowDisclosure}
-                    onCheckedChange={setAllowDisclosure}
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button 
-                    type="submit"
-                    disabled={allowDisclosure && !reserverEmail && !displayName}
-                  >
-                    Reserve
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={reserveDialogOpen} onOpenChange={setReserveDialogOpen}>
-          <DrawerContent className="max-h-[90vh]">
-            <div className="mx-auto w-full max-w-sm">
-              <DrawerHeader className="text-left pb-2 px-4 pt-2">
-                <DrawerTitle className="text-base">Reserve Item</DrawerTitle>
-              </DrawerHeader>
-              <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(90vh - 140px)' }}>
-                <form onSubmit={handleReserveItem} id="reserve-item-form" className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="reserver-email-mobile">Your Email (optional)</Label>
-                    <Input
-                      id="reserver-email-mobile"
-                      type="email"
-                      autoComplete="off"
-                      value={reserverEmail}
-                      onChange={(e) => setReserverEmail(e.target.value)}
-                      placeholder="Enter your email to receive updates"
-                    />
-                    <p className="text-xs text-gray-500">
-                      {allowDisclosure && !reserverEmail && !displayName ? 
-                        "Please provide either an email or display name if you want to be identified" : 
-                        "Your email will only be visible to the wishlist creator if you allow disclosure"}
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="display-name-mobile">Display Name (optional)</Label>
-                    <Input
-                      id="display-name-mobile"
-                      type="text"
-                      autoComplete="off"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="How you'd like to be identified"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="passphrase-mobile">Passphrase (optional)</Label>
-                    <Input
-                      id="passphrase-mobile"
-                      type="text"
-                      autoComplete="off"
-                      value={passphrase}
-                      onChange={(e) => setPassphrase(e.target.value)}
-                      placeholder="A secret word to identify your reservation"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="allow-disclosure-mobile" className="text-sm font-medium">
-                        Allow the creator to see my identity
-                      </Label>
-                    </div>
-                    <Switch
-                      id="allow-disclosure-mobile"
-                      checked={allowDisclosure}
-                      onCheckedChange={setAllowDisclosure}
-                    />
-                  </div>
-                </form>
-              </div>
-              <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
-                <Button 
-                  type="submit"
-                  form="reserve-item-form"
-                  disabled={allowDisclosure && !reserverEmail && !displayName}
-                  className="w-full"
-                >
-                  Reserve
-                </Button>
-                <DrawerClose asChild>
-                  <Button variant="outline" className="w-full">Cancel</Button>
-                </DrawerClose>
-              </DrawerFooter>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      <ResponsiveDialog
+        open={reserveDialogOpen}
+        onOpenChange={setReserveDialogOpen}
+        title="Reserve Item"
+        footer={!isDesktop ? (
+          <>
+            <Button 
+              type="submit"
+              size="lg"
+              form="reserve-item-form"
+              disabled={allowDisclosure && !reserverEmail && !displayName}
+              className="w-full"
+            >
+              Reserve
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full">Cancel</Button>
+            </DrawerClose>
+          </>
+        ) : undefined}
+      >
+        <ReserveItemForm
+          reserverEmail={reserverEmail}
+          setReserverEmail={setReserverEmail}
+          displayName={displayName}
+          setDisplayName={setDisplayName}
+          passphrase={passphrase}
+          setPassphrase={setPassphrase}
+          allowDisclosure={allowDisclosure}
+          setAllowDisclosure={setAllowDisclosure}
+          isMobile={!isDesktop}
+          autoFocus={isDesktop}
+          onSubmit={handleReserveItem}
+        />
+        {isDesktop && (
+          <div className="flex justify-end gap-2 pt-2">
+            <Button 
+              type="submit"
+              form="reserve-item-form"
+              disabled={allowDisclosure && !reserverEmail && !displayName}
+            >
+              Reserve
+            </Button>
+          </div>
+        )}
+      </ResponsiveDialog>
     </div>
     </>
   );

@@ -8,8 +8,10 @@ import { Button } from '@/app/components/ui/button';
 import { Plus, LogOut, Menu, X, Home } from 'lucide-react';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { MagicLinkForm } from './MagicLinkForm';
+import { ResponsiveDialog } from './ResponsiveDialog';
+import { DrawerClose } from './ui/drawer';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { toast } from 'sonner';
 
 export function Navbar() {
@@ -18,6 +20,9 @@ export function Navbar() {
   const { isAuthenticated, isLoading, refresh } = useAuth();
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const routes = [
     { href: '/', label: 'Home', icon: Home },
@@ -51,9 +56,43 @@ export function Navbar() {
     }
   };
 
-  const handleRestoreSuccess = () => {
-    setRestoreDialogOpen(false);
-    refresh();
+  const handleSendMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingMagicLink(true);
+
+    try {
+      const response = await fetch('/api/auth/send-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: magicLinkEmail }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send magic link');
+      }
+
+      toast.success('Magic link sent!', {
+        description: 'Please check your email for the sign-in link.',
+      });
+
+      setRestoreDialogOpen(false);
+      setMagicLinkEmail('');
+      refresh();
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'Something went wrong',
+      });
+    } finally {
+      setIsSendingMagicLink(false);
+    }
+  };
+
+  const handleRestoreDialogClose = (open: boolean) => {
+    setRestoreDialogOpen(open);
+    if (!open) {
+      setMagicLinkEmail('');
+    }
   };
 
   const handleRestoreClick = () => {
@@ -198,17 +237,52 @@ export function Navbar() {
         )}
       </nav>
 
-      <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Restore My Wishlists</DialogTitle>
-            <DialogDescription className="text-sm">
-              Enter your email to receive a magic link and access your wishlists from this device.
-            </DialogDescription>
-          </DialogHeader>
-          <MagicLinkForm onSuccess={handleRestoreSuccess} />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog
+        open={restoreDialogOpen}
+        onOpenChange={handleRestoreDialogClose}
+        title="Restore My Wishlists"
+        footer={!isDesktop ? (
+          <>
+            <Button 
+              type="submit"
+              size="lg"
+              form="magic-link-form"
+              disabled={isSendingMagicLink}
+              className="w-full"
+            >
+              {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full">Cancel</Button>
+            </DrawerClose>
+          </>
+        ) : undefined}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Enter your email to receive a magic link and access your wishlists from this device.
+          </p>
+          <MagicLinkForm
+            email={magicLinkEmail}
+            setEmail={setMagicLinkEmail}
+            isLoading={isSendingMagicLink}
+            isMobile={!isDesktop}
+            autoFocus={isDesktop}
+            onSubmit={handleSendMagicLink}
+          />
+          {isDesktop && (
+            <div className="flex justify-end gap-2 pt-2">
+              <Button 
+                type="submit"
+                form="magic-link-form"
+                disabled={isSendingMagicLink}
+              >
+                {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+              </Button>
+            </div>
+          )}
+        </div>
+      </ResponsiveDialog>
     </>
   );
 } 

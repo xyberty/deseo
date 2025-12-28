@@ -9,8 +9,10 @@ import { Button } from '@/app/components/ui/button';
 import { Gift, PenSquare, List, Clock, ChevronDown, ChevronUp, Archive } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import { useAuth } from '@/app/hooks/useAuth';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';
 import { MagicLinkForm } from '@/app/components/MagicLinkForm';
+import { ResponsiveDialog } from '@/app/components/ResponsiveDialog';
+import { DrawerClose } from '@/app/components/ui/drawer';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { getBaseUrl } from './lib/constants';
 
 export default function HomePage() {
@@ -21,7 +23,10 @@ export default function HomePage() {
   const [reservations, setReservations] = useState<{wishlistId: string, title: string, items: WishlistItem[]}[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [savePromptOpen, setSavePromptOpen] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   
   useEffect(() => {
     fetchData();
@@ -76,6 +81,44 @@ export default function HomePage() {
   const hasReservations = reservations.length > 0;
   const hasAnyContent = hasCreatedWishlists || hasArchivedWishlists || hasSharedWishlists || hasReservations;
   const hasAnonymousWishlists = !authLoading && !isAuthenticated && hasCreatedWishlists;
+
+  const handleSendMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingMagicLink(true);
+
+    try {
+      const response = await fetch('/api/auth/send-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: magicLinkEmail }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send magic link');
+      }
+
+      toast.success('Magic link sent!', {
+        description: 'Please check your email for the sign-in link.',
+      });
+
+      setSavePromptOpen(false);
+      setMagicLinkEmail('');
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'Something went wrong',
+      });
+    } finally {
+      setIsSendingMagicLink(false);
+    }
+  };
+
+  const handleSavePromptClose = (open: boolean) => {
+    setSavePromptOpen(open);
+    if (!open) {
+      setMagicLinkEmail('');
+    }
+  };
 
   const baseUrl = getBaseUrl()
 
@@ -314,17 +357,52 @@ export default function HomePage() {
         )}
 
         {/* Save to Account Dialog */}
-        <Dialog open={savePromptOpen} onOpenChange={setSavePromptOpen}>
-          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="text-base sm:text-lg">Save Your Wishlists</DialogTitle>
-              <DialogDescription className="text-sm">
-                Sign in with your email to access your wishlists from any device, anytime.
-              </DialogDescription>
-            </DialogHeader>
-            <MagicLinkForm onSuccess={() => setSavePromptOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <ResponsiveDialog
+          open={savePromptOpen}
+          onOpenChange={handleSavePromptClose}
+          title="Save Your Wishlists"
+          footer={!isDesktop ? (
+            <>
+              <Button 
+                type="submit"
+                size="lg"
+                form="magic-link-form"
+                disabled={isSendingMagicLink}
+                className="w-full"
+              >
+                {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="outline" size="lg" className="w-full">Cancel</Button>
+              </DrawerClose>
+            </>
+          ) : undefined}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Sign in with your email to access your wishlists from any device, anytime.
+            </p>
+            <MagicLinkForm
+              email={magicLinkEmail}
+              setEmail={setMagicLinkEmail}
+              isLoading={isSendingMagicLink}
+              isMobile={!isDesktop}
+              autoFocus={isDesktop}
+              onSubmit={handleSendMagicLink}
+            />
+            {isDesktop && (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button 
+                  type="submit"
+                  form="magic-link-form"
+                  disabled={isSendingMagicLink}
+                >
+                  {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </ResponsiveDialog>
       </div>
     </>
   );

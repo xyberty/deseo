@@ -13,61 +13,57 @@ import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES } from "@/app/lib/currencies";
 import { toast } from "sonner";
 import { ChevronsUpDown } from "lucide-react";
-import type { WishlistItem } from "@/app/types/wishlist";
 
-interface EditItemDialogProps {
-  item: WishlistItem;
+interface AddItemDialogProps {
   wishlistId: string;
   listCurrency: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onItemUpdated: (updatedItem: WishlistItem) => void;
-  onItemDeleted: (itemId: string) => void;
+  onItemAdded: (itemId: string) => void;
+  trigger?: React.ReactNode;
 }
 
-export function EditItemDialog({
-  item,
+export function AddItemDialog({
   wishlistId,
   listCurrency,
   open,
   onOpenChange,
-  onItemUpdated,
-  onItemDeleted,
-}: EditItemDialogProps) {
+  onItemAdded,
+  trigger,
+}: AddItemDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const [showMoreDetails, setShowMoreDetails] = useState(true);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
-    name: item.name,
-    description: item.description || "",
-    price: item.price ? String(item.price) : "",
-    currency: item.currency || listCurrency,
-    url: item.url || "",
-    imageUrl: item.imageUrl || "",
+    name: "",
+    description: "",
+    price: "",
+    currency: listCurrency,
+    url: "",
+    imageUrl: "",
   });
 
-  // Reset form when item changes or dialog opens/closes
+  // Reset form when dialog opens/closes
   useEffect(() => {
-    if (open && item) {
+    if (!open) {
       setFormData({
-        name: item.name,
-        description: item.description || "",
-        price: item.price ? String(item.price) : "",
-        currency: item.currency || listCurrency,
-        url: item.url || "",
-        imageUrl: item.imageUrl || "",
+        name: "",
+        description: "",
+        price: "",
+        currency: listCurrency,
+        url: "",
+        imageUrl: "",
       });
-      setShowMoreDetails(true);
+      setShowMoreDetails(false);
+    } else if (open && isDesktop && nameInputRef.current) {
       // Auto-focus on desktop
-      if (isDesktop && nameInputRef.current) {
-        setTimeout(() => {
-          nameInputRef.current?.focus();
-        }, 100);
-      }
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
     }
-  }, [open, item, listCurrency, isDesktop]);
+  }, [open, listCurrency, isDesktop]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,8 +73,8 @@ export function EditItemDialog({
       // Only include currency if it's different from list's currency
       const itemCurrency = formData.currency !== listCurrency ? formData.currency : undefined;
       
-      const response = await fetch(`/api/wishlists/${wishlistId}/items/${item.id}`, {
-        method: "PATCH",
+      const response = await fetch(`/api/wishlists/${wishlistId}/items`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -93,52 +89,24 @@ export function EditItemDialog({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update item");
+        throw new Error("Failed to add item");
       }
 
-      const updatedItem: WishlistItem = {
-        ...item,
-        name: formData.name,
-        description: formData.description || undefined,
-        price: formData.price ? parseFloat(formData.price) : undefined,
-        currency: itemCurrency,
-        url: formData.url || undefined,
-        imageUrl: formData.imageUrl || undefined,
-      };
+      const data = await response.json();
+      const newItemId = data.item?.id;
 
-      onItemUpdated(updatedItem);
       onOpenChange(false);
-      toast.success("Item updated successfully");
+      toast.success("Item added successfully");
+      
+      // Notify parent to handle scrolling and highlighting
+      if (newItemId) {
+        onItemAdded(newItemId);
+      }
     } catch (error) {
-      console.error("Error updating item:", error);
-      toast.error("Failed to update item");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this item?")) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`/api/wishlists/${wishlistId}/items/${item.id}`, {
-        method: "DELETE",
+      console.error("Error adding item:", error);
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Failed to add item",
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete item");
-      }
-
-      onItemDeleted(item.id);
-      onOpenChange(false);
-      toast.success("Item deleted successfully");
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      toast.error("Failed to delete item");
     } finally {
       setIsLoading(false);
     }
@@ -148,17 +116,18 @@ export function EditItemDialog({
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Edit Item"
+      title="Add Item"
+      trigger={trigger}
       footer={!isDesktop ? (
         <>
           <Button 
             type="submit"
             size="lg"
-            form="edit-item-form"
+            form="add-item-form"
             disabled={isLoading}
             className="w-full"
           >
-            Save Changes
+            Save
           </Button>
           <DrawerClose asChild>
             <Button variant="outline" className="w-full" disabled={isLoading}>
@@ -168,7 +137,7 @@ export function EditItemDialog({
         </>
       ) : undefined}
     >
-      <form id="edit-item-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="add-item-form" onSubmit={handleSubmit} className="space-y-4">
         {/* Required fields */}
         <div className="grid gap-2">
           <div className="grid gap-1">
@@ -263,45 +232,16 @@ export function EditItemDialog({
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Desktop only - Action buttons (mobile has sticky footer) */}
-        {isDesktop ? (
-          <div className="flex justify-between pt-2">
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isLoading}
-            >
-              Delete
-            </Button>
-            <div className="space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                Save Changes
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="pt-2">
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isLoading}
-              className="w-full"
-            >
-              Delete
+        {/* Desktop only - Save button (mobile has sticky footer) */}
+        {isDesktop && (
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="submit" disabled={isLoading}>
+              Save
             </Button>
           </div>
         )}
       </form>
     </ResponsiveDialog>
   );
-} 
+}
+

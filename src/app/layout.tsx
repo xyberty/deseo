@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Open_Sans, Montserrat } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
+import { Toaster } from "@/app/components/ui/sonner";
 import { Navbar } from "@/app/components/Navbar";
 import { Footer } from "@/app/components/Footer";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { getServerBaseUrl } from "./lib/constants";
+import { ThemeProvider } from "@/app/components/ThemeProvider";
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -105,19 +106,21 @@ export default function RootLayout({
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
   return (
-    <html lang="en" className={`${openSans.variable} ${montserrat.variable}`}>
-      <body className="bg-background font-sans antialiased">
-        {gaId && <GoogleAnalytics gaId={gaId} />}
-        <div className="flex min-h-screen flex-col items-center" data-slot="root">
-          <div className="container w-full flex-1 flex flex-col">
-            <Navbar />
-            <main className="lg:max-w-4xl max-w-full mx-auto w-full py-4 sm:py-6 lg:py-8" data-slot="main">
-              {children}
-            </main>
+    <html lang="en" className={`${openSans.variable} ${montserrat.variable}`} suppressHydrationWarning>
+      <body className="bg-background font-sans antialiased" suppressHydrationWarning>
+        <ThemeProvider>
+          {gaId && <GoogleAnalytics gaId={gaId} />}
+          <div className="flex min-h-screen flex-col items-center" data-slot="root">
+            <div className="container w-full flex-1 flex flex-col">
+              <Navbar />
+              <main className="lg:max-w-4xl max-w-full mx-auto w-full py-4 sm:py-6 lg:py-8" data-slot="main">
+                {children}
+              </main>
+            </div>
+            <Footer />
+            <Toaster />
           </div>
-          <Footer />
-          <Toaster />
-        </div>
+        </ThemeProvider>
       </body>
     </html>
   );
