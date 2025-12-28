@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import Image from 'next/image';
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/app/components/ui/drawer";
+import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/app/components/ui/drawer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
@@ -42,7 +42,6 @@ interface AddItemFormProps {
   setNewItemUrl: (value: string) => void;
   newItemImageUrl: string;
   setNewItemImageUrl: (value: string) => void;
-  listCurrency: string;
   handleAddItem: (e: React.FormEvent) => void;
   autoFocus?: boolean;
 }
@@ -60,7 +59,6 @@ function AddItemForm({
   setNewItemUrl,
   newItemImageUrl,
   setNewItemImageUrl,
-  listCurrency,
   handleAddItem,
   autoFocus = false,
 }: AddItemFormProps) {
@@ -727,7 +725,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                       setNewItemUrl={setNewItemUrl}
                       newItemImageUrl={newItemImageUrl}
                       setNewItemImageUrl={setNewItemImageUrl}
-                      listCurrency={listCurrency}
                       handleAddItem={handleAddItem}
                       autoFocus={true}
                     />
@@ -760,7 +757,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                           setNewItemUrl={setNewItemUrl}
                           newItemImageUrl={newItemImageUrl}
                           setNewItemImageUrl={setNewItemImageUrl}
-                          listCurrency={listCurrency}
                           handleAddItem={handleAddItem}
                           autoFocus={true}
                         />
