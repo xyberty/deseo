@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { DrawerClose } from "@/app/components/ui/drawer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
+import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/app/components/ui/field";
 import { ResponsiveDialog } from "@/app/components/ResponsiveDialog";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES } from "@/app/lib/currencies";
@@ -161,7 +161,7 @@ export function EditItemDialog({
             Save Changes
           </Button>
           <DrawerClose asChild>
-            <Button variant="outline" className="w-full" disabled={isLoading}>
+            <Button variant="outline" size="lg"className="w-full" disabled={isLoading}>
               Cancel
             </Button>
           </DrawerClose>
@@ -292,6 +292,7 @@ export function EditItemDialog({
           <div className="pt-2">
             <Button
               type="button"
+              size="lg"
               variant="destructive"
               onClick={handleDelete}
               disabled={isLoading}

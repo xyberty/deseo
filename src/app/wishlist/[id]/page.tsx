@@ -3,21 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as React from 'react';
 import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Textarea } from '@/app/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
 import { use } from 'react';
-import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings, ChevronsUpDown } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import Image from 'next/image';
 import { DrawerClose } from "@/app/components/ui/drawer";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
 import { Switch } from "@/app/components/ui/switch";
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from "@/app/components/ui/field";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
@@ -27,147 +22,13 @@ import { ResponsiveDialog } from '@/app/components/ResponsiveDialog';
 import { SettingsForm } from '@/app/components/SettingsForm';
 import { ReserveItemForm } from '@/app/components/ReserveItemForm';
 import { AddItemDialog } from '@/app/components/AddItemDialog';
+import { EditItemDialog } from '@/app/components/EditItemDialog';
 import { DeleteItemDialog } from '@/app/components/DeleteItemDialog';
 
 // Define user permissions interface
 interface UserPermissions {
   canEdit: boolean;
   isOwner: boolean;
-}
-
-
-// Edit Item Form Component
-interface EditItemFormProps {
-  editingItem: WishlistItem | null;
-  setEditingItem: (item: WishlistItem | null) => void;
-  listCurrency: string;
-  handleEditItem: (e: React.FormEvent) => void;
-  autoFocus?: boolean;
-}
-
-function EditItemForm({
-  editingItem,
-  setEditingItem,
-  listCurrency,
-  handleEditItem,
-  autoFocus = false,
-}: EditItemFormProps) {
-  const [showMoreDetails, setShowMoreDetails] = useState(true);
-  const nameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (autoFocus && nameInputRef.current && editingItem) {
-      // Small delay to ensure the input is rendered
-      setTimeout(() => {
-        nameInputRef.current?.focus();
-      }, 100);
-    }
-  }, [autoFocus, editingItem]);
-
-  // Don't render if no item to edit
-  if (!editingItem) {
-    return <div>No item selected</div>;
-  }
-
-  return (
-    <form onSubmit={handleEditItem} className="space-y-4">
-      {/* Required fields */}
-      <div className="grid gap-2">
-        <div className="grid gap-1">
-          <Label htmlFor="edit-name">Title *</Label>
-          <Input 
-            id="edit-name"
-            ref={nameInputRef}
-            value={editingItem.name || ''}
-            onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-            placeholder="Enter item name"
-            autoComplete="off"
-            required
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label htmlFor="edit-url">URL</Label>
-          <Input 
-            id="edit-url"
-            type="url"
-            value={editingItem.url || ''}
-            onChange={(e) => setEditingItem({ ...editingItem, url: e.target.value })}
-            placeholder="https://example.com/item"
-            autoComplete="off"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label htmlFor="edit-price">Price</Label>
-          <div className="flex gap-2">
-            <Input 
-              id="edit-price"
-              type="number"
-              step="0.01"
-              value={editingItem.price || ''}
-              onChange={(e) => setEditingItem({ ...editingItem, price: parseFloat(e.target.value) || 0 })}
-              placeholder="Enter price"
-              min="0"
-              className="flex-1"
-              autoComplete="off"
-            />
-            <Select 
-              value={editingItem.currency || listCurrency} 
-              onValueChange={(value) => setEditingItem({ ...editingItem, currency: value })}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {CURRENCIES.map((curr) => (
-                  <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                    {curr.alpha3} — {curr.symbol}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      {/* Optional fields in Collapsible */}
-      <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
-        <CollapsibleTrigger asChild>
-          <Button type="button" variant="ghost" className="w-full justify-between">
-            <span>More details</span>
-            <span><ChevronsUpDown /></span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 pt-2">
-          <div className="grid gap-1">
-            <Label htmlFor="edit-description">Description</Label>
-            <Textarea 
-              id="edit-description"
-              value={editingItem.description || ''}
-              onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-              placeholder="Add a description"
-              rows={3}
-            />
-          </div>
-          <div className="grid gap-1">
-            <Label htmlFor="edit-image-url">Image URL</Label>
-            <Input 
-              id="edit-image-url"
-              type="url"
-              value={editingItem.imageUrl || ''}
-              onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })}
-              placeholder="https://example.com/image.jpg"
-              autoComplete="off"
-            />
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Desktop only - Save button (mobile has sticky footer) */}
-      <div className="hidden md:flex justify-end gap-2 pt-2">
-        <Button type="submit">Save Changes</Button>
-      </div>
-    </form>
-  );
 }
 
 export default function WishlistPage({ params }: { params: Promise<{ id: string }> }) {
@@ -383,39 +244,17 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     }, 100);
   }, [fetchWishlist]);
 
-  const handleEditItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!wishlist || !editingItem) return;
+  const handleItemUpdated = useCallback((updatedItem: WishlistItem) => {
+    fetchWishlist();
+    setEditDialogOpen(false);
+    setEditingItem(null);
+  }, [fetchWishlist]);
 
-    try {
-      // Only include currency if it's different from list's currency
-      const itemCurrency = editingItem.currency !== listCurrency ? editingItem.currency : undefined;
-      
-      const response = await fetch(`/api/wishlists/${resolvedParams.id}/items/${editingItem.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editingItem.name,
-          description: editingItem.description,
-          price: editingItem.price,
-          currency: itemCurrency,
-          url: editingItem.url,
-          imageUrl: editingItem.imageUrl
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update item');
-
-      setEditDialogOpen(false);
-      setEditingItem(null);
-      fetchWishlist();
-      toast.success('Item updated successfully');
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to update item',
-      });
-    }
-  };
+  const handleItemDeleted = useCallback((itemId: string) => {
+    fetchWishlist();
+    setEditDialogOpen(false);
+    setEditingItem(null);
+  }, [fetchWishlist]);
 
   const handleDeleteItemConfirm = async () => {
     if (!wishlist || !itemToDelete) return;
@@ -970,28 +809,18 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         )}
       </div>
 
-      {/* Edit Dialog/Drawer */}
-      <ResponsiveDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        title="Edit Item"
-        footer={!isDesktop ? (
-          <>
-            <Button size="lg" onClick={handleEditItem} className="w-full">Save Changes</Button>
-            <DrawerClose asChild>
-              <Button variant="outline" className="w-full">Cancel</Button>
-            </DrawerClose>
-          </>
-        ) : undefined}
-      >
-        <EditItemForm
-          editingItem={editingItem}
-          setEditingItem={setEditingItem}
+      {/* Edit Item Dialog */}
+      {editingItem && (
+        <EditItemDialog
+          item={editingItem}
+          wishlistId={resolvedParams.id}
           listCurrency={listCurrency}
-          handleEditItem={handleEditItem}
-          autoFocus={isDesktop}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onItemUpdated={handleItemUpdated}
+          onItemDeleted={handleItemDeleted}
         />
-      </ResponsiveDialog>
+      )}
 
       {/* Delete Item Dialog */}
       <DeleteItemDialog
