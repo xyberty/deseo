@@ -18,6 +18,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/app/components/ui/drawer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
+import { Switch } from "@/app/components/ui/switch";
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from "@/app/components/ui/field";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
 import { getBaseUrl } from '@/app/lib/constants';
@@ -935,7 +937,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                           newItemImageUrl={newItemImageUrl}
                           setNewItemImageUrl={setNewItemImageUrl}
                           handleAddItem={handleAddItem}
-                          autoFocus={true}
                         />
                       </div>
                       <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
@@ -988,102 +989,88 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         )}
       </div>
 
-      {/* Settings dialog for owners */}
-      {showSettingsDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md lg:max-w-2xl max-h-[calc(100vh-2rem)] flex flex-col relative shadow-lg">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-white rounded-t-lg shrink-0">
-              <h2 className="text-lg sm:text-xl font-heading font-bold">Wishlist Settings</h2>
-              <div className="flex items-center gap-2">
+      {/* Settings Dialog/Drawer */}
+      {isDesktop ? (
+        <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Wishlist Settings</DialogTitle>
                 {isArchived && (
                   <Badge variant="secondary" className="text-xs">
                     Archived
                   </Badge>
                 )}
-                <button
-                  onClick={() => setShowSettingsDialog(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                  aria-label="Close"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
               </div>
-            </div>
-            
-            {/* Scrollable Content */}
-            <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6">
-              <div className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Details</h3>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="wishlist-title">Title</Label>
-                  <Input
-                    id="wishlist-title"
-                    value={wishlistTitle}
-                    onChange={(e) => setWishlistTitle(e.target.value)}
-                    placeholder="Enter wishlist title"
-                    disabled={isArchived}
-                    autoComplete="off"
-                  />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="wishlist-description">Description (optional)</Label>
-                  <Textarea
-                    id="wishlist-description"
-                    value={wishlistDescription}
-                    onChange={(e) => setWishlistDescription(e.target.value)}
-                    placeholder="Add a description for your wishlist"
-                    rows={3}
-                    disabled={isArchived}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Currency</h3>
-                <div className="grid gap-2">
-                  <Label htmlFor="currency-select">Default Currency</Label>
-                  <Select value={listCurrency} onValueChange={setListCurrency} disabled={isArchived}>
-                    <SelectTrigger id="currency-select">
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CURRENCIES.map((curr) => (
-                        <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                          {curr.alpha3} — {curr.symbol}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-gray-500">Items will use this currency by default</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Sharing</h3>
-                
-                {/* Short Link Section */}
-                <div className="space-y-2">
-                  <Label htmlFor="short-link">Short Link</Label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="flex-1 flex flex-col sm:flex-row gap-2">
+            </DialogHeader>
+            <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
+              <FieldGroup className="py-4 pb-8">
+                {/* Details Section */}
+                <FieldSet>
+                  <FieldLegend>Details</FieldLegend>
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="wishlist-title">Title</FieldLabel>
+                      <Input
+                        id="wishlist-title"
+                        value={wishlistTitle}
+                        onChange={(e) => setWishlistTitle(e.target.value)}
+                        placeholder="Enter wishlist title"
+                        disabled={isArchived}
+                        autoComplete="off"
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="wishlist-description">Description</FieldLabel>
+                      <Textarea
+                        id="wishlist-description"
+                        value={wishlistDescription}
+                        onChange={(e) => setWishlistDescription(e.target.value)}
+                        placeholder="Add a description for your wishlist"
+                        rows={3}
+                        disabled={isArchived}
+                      />
+                      <FieldDescription>(optional)</FieldDescription>
+                    </Field>
+                  </FieldGroup>
+                </FieldSet>
+
+                <FieldSeparator />
+
+                {/* Currency Section */}
+                <FieldSet>
+                  <FieldLegend>Currency</FieldLegend>
+                  <FieldGroup>
+                    <Field orientation="responsive">
+                      <FieldContent>
+                        <FieldLabel htmlFor="currency-select">Default Currency</FieldLabel>
+                        <FieldDescription>Items will use this currency by default</FieldDescription>
+                      </FieldContent>
+                      <Select value={listCurrency} onValueChange={setListCurrency} disabled={isArchived}>
+                        <SelectTrigger id="currency-select">
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CURRENCIES.map((curr) => (
+                            <SelectItem key={curr.alpha3} value={curr.alpha3}>
+                              {curr.alpha3} — {curr.symbol}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </FieldGroup>
+                </FieldSet>
+
+                <FieldSeparator />
+
+                {/* Sharing Section */}
+                <FieldSet>
+                  <FieldLegend>Sharing</FieldLegend>
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="short-link">Short Link</FieldLabel>
+                      <div className="flex gap-2">
                         <Input 
                           id="short-link"
                           value={shortUrl || 'Generating...'} 
@@ -1092,199 +1079,509 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                           disabled={isArchived}
                           className="font-mono text-xs sm:text-sm"
                         />
-                      <Button variant="outline" onClick={copyShareLink} disabled={isArchived || !shortUrl}>
-                        Copy
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Custom Code Editor */}
-                  {userPermissions.isOwner && !isArchived && (
-                    <div className="space-y-2">
-                      {!isCustomCodeEditing ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500">
-                            Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setCustomCode(shortCode || '');
-                              setIsCustomCodeEditing(true);
-                            }}
-                            className="h-7 px-2 text-xs"
-                          >
-                            <Pencil className="h-3 w-3 mr-1" />
+                        <Button variant="outline" onClick={copyShareLink} disabled={isArchived || !shortUrl}>
+                          Copy
+                        </Button>
+                      </div>
+                    </Field>
+                    
+                    {/* Custom Code Editor */}
+                    {userPermissions.isOwner && !isArchived && (
+                      <Field>
+                        {!isCustomCodeEditing ? (
+                          <div className="flex items-center gap-2">
+                            <FieldDescription>
+                              Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
+                            </FieldDescription>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setCustomCode(shortCode || '');
+                                setIsCustomCodeEditing(true);
+                              }}
+                              className="h-7 px-2 text-xs"
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <FieldLabel htmlFor="custom-code">Custom Code</FieldLabel>
+                            <div className="flex gap-2">
+                              <Input
+                                id="custom-code"
+                                value={customCode}
+                                onChange={(e) => setCustomCode(e.target.value)}
+                                placeholder="Enter custom code (3-20 chars)"
+                                className="font-mono text-xs sm:text-sm"
+                                maxLength={20}
+                                autoComplete="off"
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={updateCustomCode}
+                                disabled={!customCode.trim() || customCode.trim().length < 3}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setIsCustomCodeEditing(false);
+                                  setCustomCode(shortCode || '');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                            <FieldDescription>Alphanumeric only, 3-20 characters</FieldDescription>
+                          </>
+                        )}
+                      </Field>
+                    )}
+                    
+                    {/* Full Link (Collapsible) */}
+                    <Field>
+                      <Collapsible>
+                        <CollapsibleTrigger asChild>
+                          <Button type="button" variant="ghost" className="w-full justify-between text-sm">
+                            <span>Show full link</span>
+                            <ChevronsUpDown className="h-4 w-4" />
                           </Button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <div className="flex-1">
-                            <Input
-                              value={customCode}
-                              onChange={(e) => setCustomCode(e.target.value)}
-                              placeholder="Enter custom code (3-20 chars)"
-                              className="font-mono text-xs sm:text-sm"
-                              maxLength={20}
-                              autoComplete="off"
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-2 pt-2">
+                          <div className="flex gap-2">
+                            <Input 
+                              value={shareUrl} 
+                              readOnly 
+                              onClick={(e) => e.currentTarget.select()}
+                              disabled={isArchived}
+                              className="font-mono text-xs break-all"
                             />
-                            <p className="text-xs text-gray-500 mt-1">
-                              Alphanumeric only, 3-20 characters
+                            <Button variant="outline" size="sm" onClick={() => {
+                              navigator.clipboard.writeText(shareUrl);
+                              toast.success('Full link copied');
+                            }} disabled={isArchived}>
+                              Copy
+                            </Button>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </Field>
+
+                    {/* Analytics Section */}
+                    {analytics && userPermissions.isOwner && (
+                      <Field>
+                        <FieldLabel>Link Analytics</FieldLabel>
+                        <div className="flex gap-4">
+                          <div>
+                            <p className="text-sm"><span className="text-muted-foreground">Total clicks:</span> {analytics.totalClicks}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm"><span className="text-muted-foreground">Today:</span> {analytics.clicksByDate.length > 0 
+                                ? analytics.clicksByDate[analytics.clicksByDate.length - 1].count 
+                                : 0}
                             </p>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={updateCustomCode}
-                            disabled={!customCode.trim() || customCode.trim().length < 3}
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setIsCustomCodeEditing(false);
-                              setCustomCode(shortCode || '');
-                            }}
-                          >
-                            Cancel
-                          </Button>
                         </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Full Link (Collapsible) */}
-                  <details className="text-sm">
-                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
-                      Show full link
-                    </summary>
-                    <div className="mt-2 flex flex-col sm:flex-row gap-2">
-                      <Input 
-                        value={shareUrl} 
-                        readOnly 
-                        onClick={(e) => e.currentTarget.select()}
-                        disabled={isArchived}
-                        className="font-mono text-xs break-all"
-                      />
-                      <Button variant="outline" size="sm" onClick={() => {
-                        navigator.clipboard.writeText(shareUrl);
-                        toast.success('Full link copied');
-                      }} disabled={isArchived}>
-                        Copy
-                      </Button>
-                    </div>
-                  </details>
-                </div>
-
-                {/* Analytics Section */}
-                {analytics && userPermissions.isOwner && (
-                  <div className="space-y-2 pt-2">
-                    <Label>Link Analytics</Label>
-                    <div className="flex justify-start gap-4">
-                      <div>
-                        <p className="text-sm"><span className="text-gray-500">Total clicks:</span> {analytics.totalClicks}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm"><span className="text-gray-500">Today:</span> {analytics.clicksByDate.length > 0 
-                            ? analytics.clicksByDate[analytics.clicksByDate.length - 1].count 
-                            : 0}
-                        </p>
-                      </div>
-                    </div>
-                    {analytics.recentClicks.length > 0 && (
-                      <details className="text-sm">
-                        <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mt-2">
-                          Recent clicks ({analytics.recentClicks.length})
-                        </summary>
-                        <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                          {analytics.recentClicks.map((click, idx) => (
-                            <div key={idx} className="text-sm text-gray-600 py-1 border-b">
-                              {new Date(click.clickedAt).toLocaleString()}
-                              {click.referer && (
-                                <span className="ml-2 text-gray-400">from {new URL(click.referer).hostname}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </details>
+                        {analytics.recentClicks.length > 0 && (
+                          <Collapsible>
+                            <CollapsibleTrigger asChild>
+                              <Button type="button" variant="ghost" className="w-full justify-between text-sm mt-2">
+                                <span>Recent clicks ({analytics.recentClicks.length})</span>
+                                <ChevronsUpDown className="h-4 w-4" />
+                              </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                                {analytics.recentClicks.map((click, idx) => (
+                                  <div key={idx} className="text-sm text-muted-foreground py-1 border-b">
+                                    {new Date(click.clickedAt).toLocaleString()}
+                                    {click.referer && (
+                                      <span className="ml-2 text-muted-foreground/70">from {new URL(click.referer).hostname}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
+                      </Field>
                     )}
-                  </div>
-                )}
-              </div>
+                  </FieldGroup>
+                </FieldSet>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Privacy</h3>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="public-toggle" className="font-medium">Public Wishlist</Label>
-                    <p className="text-sm text-gray-500">Anyone can view using just the wishlist ID.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isPublic}
-                    onChange={(e) => setIsPublic(e.target.checked)}
-                    disabled={isArchived}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="edits-toggle" className="font-medium">Allow Edits</Label>
-                    <p className="text-sm text-gray-500">Anyone with access can add or edit items</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={allowEdits}
-                    onChange={(e) => setAllowEdits(e.target.checked)}
-                    disabled={isArchived}
-                  />
-                </div>
-              </div>
-              
+                <FieldSeparator />
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-gray-500">Once you delete a wishlist, there is no going back. Please be certain.</p>
-                  <Button 
-                    variant="destructive" 
-                    onClick={() => {
-                      setShowSettingsDialog(false);
-                      setShowDeleteDialog(true);
-                    }}
-                  >
-                    Delete Wishlist
-                  </Button>
-                </div>
-              </div>
-              
-              </div>
+                {/* Privacy Section */}
+                <FieldSet>
+                  <FieldLegend>Privacy</FieldLegend>
+                  <FieldGroup>
+                    <Field orientation="horizontal">
+                      <FieldContent>
+                        <FieldLabel htmlFor="public-toggle">Public Wishlist</FieldLabel>
+                        <FieldDescription>Anyone can view using just the wishlist ID.</FieldDescription>
+                      </FieldContent>
+                      <Switch
+                        id="public-toggle"
+                        checked={isPublic}
+                        onCheckedChange={setIsPublic}
+                        disabled={isArchived}
+                      />
+                    </Field>
+                    <Field orientation="horizontal">
+                      <FieldContent>
+                        <FieldLabel htmlFor="edits-toggle">Allow Edits</FieldLabel>
+                        <FieldDescription>Anyone with access can add or edit items</FieldDescription>
+                      </FieldContent>
+                      <Switch
+                        id="edits-toggle"
+                        checked={allowEdits}
+                        onCheckedChange={setAllowEdits}
+                        disabled={isArchived}
+                      />
+                    </Field>
+                  </FieldGroup>
+                </FieldSet>
+
+                <FieldSeparator />
+
+                {/* Danger Zone */}
+                <FieldSet>
+                  <FieldLegend className="text-destructive">Danger Zone</FieldLegend>
+                  <FieldGroup>
+                    <Field>
+                      <FieldDescription>Once you delete a wishlist, there is no going back. Please be certain.</FieldDescription>
+                      <Button 
+                        variant="destructive" 
+                        onClick={() => {
+                          setShowSettingsDialog(false);
+                          setShowDeleteDialog(true);
+                        }}
+                      >
+                        Delete Wishlist
+                      </Button>
+                    </Field>
+                  </FieldGroup>
+                </FieldSet>
+              </FieldGroup>
             </div>
-            
-            {/* Footer */}
-            <div className="border-t p-4 sm:p-6 bg-white rounded-b-lg shrink-0">
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowSettingsDialog(false)} className="w-full sm:w-auto">
-                  Cancel
-                </Button>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowSettingsDialog(false)} className="w-full sm:w-auto">
+                Cancel
+              </Button>
+              <Button 
+                variant={isArchived ? "default" : "outline"}
+                onClick={handleArchiveToggle}
+                className="w-full sm:w-auto"
+              >
+                {isArchived ? 'Unarchive' : 'Archive'}
+              </Button>
+              <Button onClick={updatePrivacySettings} disabled={isArchived} className="w-full sm:w-auto">
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+          <DrawerContent className="max-h-[90vh]">
+            <div className="mx-auto w-full max-w-sm">
+              <DrawerHeader className="text-left pb-2 px-4 pt-2">
+                <div className="flex items-center justify-between">
+                  <DrawerTitle className="text-base">Wishlist Settings</DrawerTitle>
+                  {isArchived && (
+                    <Badge variant="secondary" className="text-xs">
+                      Archived
+                    </Badge>
+                  )}
+                </div>
+              </DrawerHeader>
+              <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(90vh - 140px)', paddingBottom: '2rem' }}>
+                <FieldGroup className="py-4 pb-8">
+                  {/* Details Section */}
+                  <FieldSet>
+                    <FieldLegend variant="label">Details</FieldLegend>
+                    <FieldGroup>
+                      <Field>
+                        <FieldLabel htmlFor="wishlist-title-mobile">Title</FieldLabel>
+                        <Input
+                          id="wishlist-title-mobile"
+                          value={wishlistTitle}
+                          onChange={(e) => setWishlistTitle(e.target.value)}
+                          placeholder="Enter wishlist title"
+                          disabled={isArchived}
+                          autoComplete="off"
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="wishlist-description-mobile">Description</FieldLabel>
+                        <Textarea
+                          id="wishlist-description-mobile"
+                          value={wishlistDescription}
+                          onChange={(e) => setWishlistDescription(e.target.value)}
+                          placeholder="Add a description for your wishlist"
+                          rows={3}
+                          disabled={isArchived}
+                        />
+                        <FieldDescription>(optional)</FieldDescription>
+                      </Field>
+                    </FieldGroup>
+                  </FieldSet>
+
+                  <FieldSeparator />
+
+                  {/* Currency Section */}
+                  <FieldSet>
+                    <FieldLegend variant="label">Currency</FieldLegend>
+                    <FieldGroup>
+                      <Field orientation="responsive">
+                        <FieldLabel htmlFor="currency-select-mobile">Default Currency</FieldLabel>
+                        <FieldDescription>Items will use this currency by default</FieldDescription>
+                        <Select value={listCurrency} onValueChange={setListCurrency} disabled={isArchived}>
+                          <SelectTrigger id="currency-select-mobile">
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CURRENCIES.map((curr) => (
+                              <SelectItem key={curr.alpha3} value={curr.alpha3}>
+                                {curr.alpha3} — {curr.symbol}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+                  </FieldSet>
+
+                  <FieldSeparator />
+
+                  {/* Sharing Section */}
+                  <FieldSet>
+                    <FieldLegend variant="label">Sharing</FieldLegend>
+                    <FieldGroup>
+                      <Field>
+                        <FieldLabel htmlFor="short-link-mobile">Short Link</FieldLabel>
+                        <div className="flex gap-2">
+                          <Input 
+                            id="short-link-mobile"
+                            value={shortUrl || 'Generating...'} 
+                            readOnly 
+                            onClick={(e) => e.currentTarget.select()}
+                            disabled={isArchived}
+                            className="font-mono text-xs"
+                          />
+                          <Button variant="outline" onClick={copyShareLink} disabled={isArchived || !shortUrl}>
+                            Copy
+                          </Button>
+                        </div>
+                      </Field>
+                      
+                      {/* Custom Code Editor */}
+                      {userPermissions.isOwner && !isArchived && (
+                        <Field>
+                          {!isCustomCodeEditing ? (
+                            <div className="flex items-center gap-2">
+                              <FieldDescription>
+                                Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
+                              </FieldDescription>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setCustomCode(shortCode || '');
+                                  setIsCustomCodeEditing(true);
+                                }}
+                                className="h-7 px-2 text-xs"
+                              >
+                                <Pencil className="h-3 w-3 mr-1" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <FieldLabel htmlFor="custom-code-mobile">Custom Code</FieldLabel>
+                              <Input
+                                id="custom-code-mobile"
+                                value={customCode}
+                                onChange={(e) => setCustomCode(e.target.value)}
+                                placeholder="Enter custom code (3-20 chars)"
+                                className="font-mono text-xs"
+                                maxLength={20}
+                                autoComplete="off"
+                              />
+                              <FieldDescription>Alphanumeric only, 3-20 characters</FieldDescription>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={updateCustomCode}
+                                  disabled={!customCode.trim() || customCode.trim().length < 3}
+                                  className="flex-1"
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setIsCustomCodeEditing(false);
+                                    setCustomCode(shortCode || '');
+                                  }}
+                                  className="flex-1"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </Field>
+                      )}
+                      
+                      {/* Full Link (Collapsible) */}
+                      <Field>
+                        <Collapsible>
+                          <CollapsibleTrigger asChild>
+                            <Button type="button" variant="ghost" className="w-full justify-between text-sm">
+                              <span>Show full link</span>
+                              <ChevronsUpDown className="h-4 w-4" />
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="space-y-2 pt-2">
+                            <div className="flex gap-2">
+                              <Input 
+                                value={shareUrl} 
+                                readOnly 
+                                onClick={(e) => e.currentTarget.select()}
+                                disabled={isArchived}
+                                className="font-mono text-xs break-all"
+                              />
+                              <Button variant="outline" size="sm" onClick={() => {
+                                navigator.clipboard.writeText(shareUrl);
+                                toast.success('Full link copied');
+                              }} disabled={isArchived}>
+                                Copy
+                              </Button>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </Field>
+
+                      {/* Analytics Section */}
+                      {analytics && userPermissions.isOwner && (
+                        <Field>
+                          <FieldLabel>Link Analytics</FieldLabel>
+                          <div className="flex gap-4">
+                            <div>
+                              <p className="text-sm"><span className="text-muted-foreground">Total clicks:</span> {analytics.totalClicks}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm"><span className="text-muted-foreground">Today:</span> {analytics.clicksByDate.length > 0 
+                                  ? analytics.clicksByDate[analytics.clicksByDate.length - 1].count 
+                                  : 0}
+                              </p>
+                            </div>
+                          </div>
+                          {analytics.recentClicks.length > 0 && (
+                            <Collapsible>
+                              <CollapsibleTrigger asChild>
+                                <Button type="button" variant="ghost" className="w-full justify-between text-sm mt-2">
+                                  <span>Recent clicks ({analytics.recentClicks.length})</span>
+                                  <ChevronsUpDown className="h-4 w-4" />
+                                </Button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                                  {analytics.recentClicks.map((click, idx) => (
+                                    <div key={idx} className="text-sm text-muted-foreground py-1 border-b">
+                                      {new Date(click.clickedAt).toLocaleString()}
+                                      {click.referer && (
+                                        <span className="ml-2 text-muted-foreground/70">from {new URL(click.referer).hostname}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          )}
+                        </Field>
+                      )}
+                    </FieldGroup>
+                  </FieldSet>
+
+                  <FieldSeparator />
+
+                  {/* Privacy Section */}
+                  <FieldSet>
+                    <FieldLegend variant="label">Privacy</FieldLegend>
+                    <FieldGroup>
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldLabel htmlFor="public-toggle-mobile">Public Wishlist</FieldLabel>
+                          <FieldDescription>Anyone can view using just the wishlist ID.</FieldDescription>
+                        </FieldContent>
+                        <Switch
+                          id="public-toggle-mobile"
+                          checked={isPublic}
+                          onCheckedChange={setIsPublic}
+                          disabled={isArchived}
+                        />
+                      </Field>
+                      <Field orientation="horizontal">
+                        <FieldContent>
+                          <FieldLabel htmlFor="edits-toggle-mobile">Allow Edits</FieldLabel>
+                          <FieldDescription>Anyone with access can add or edit items</FieldDescription>
+                        </FieldContent>
+                        <Switch
+                          id="edits-toggle-mobile"
+                          checked={allowEdits}
+                          onCheckedChange={setAllowEdits}
+                          disabled={isArchived}
+                        />
+                      </Field>
+                    </FieldGroup>
+                  </FieldSet>
+
+                  <FieldSeparator />
+
+                  {/* Danger Zone */}
+                  <FieldSet>
+                    <FieldLegend variant="label" className="text-destructive">Danger Zone</FieldLegend>
+                    <FieldGroup>
+                      <Field>
+                        <FieldDescription>Once you delete a wishlist, there is no going back. Please be certain.</FieldDescription>
+                        <Button 
+                          variant="destructive" 
+                          onClick={() => {
+                            setShowSettingsDialog(false);
+                            setShowDeleteDialog(true);
+                          }}
+                        >
+                          Delete Wishlist
+                        </Button>
+                      </Field>
+                    </FieldGroup>
+                  </FieldSet>
+                </FieldGroup>
+              </div>
+              <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
+                <Button onClick={updatePrivacySettings} disabled={isArchived} className="w-full">Save Changes</Button>
                 <Button 
                   variant={isArchived ? "default" : "outline"}
                   onClick={handleArchiveToggle}
-                  className="w-full sm:w-auto"
+                  className="w-full"
                 >
                   {isArchived ? 'Unarchive' : 'Archive'}
                 </Button>
-                <Button onClick={updatePrivacySettings} disabled={isArchived} className="w-full sm:w-auto">
-                  Save Changes
-                </Button>
-              </div>
+                <DrawerClose asChild>
+                  <Button variant="outline" className="w-full">Cancel</Button>
+                </DrawerClose>
+              </DrawerFooter>
             </div>
-          </div>
-        </div>
+          </DrawerContent>
+        </Drawer>
       )}
 
       {/* Delete Wishlist Confirmation Dialog */}
@@ -1484,7 +1781,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                   setEditingItem={setEditingItem}
                   listCurrency={listCurrency}
                   handleEditItem={handleEditItem}
-                  autoFocus={true}
                 />
               </div>
               <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
@@ -1566,17 +1862,17 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                     placeholder="A secret word to identify your reservation"
                   />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="allow-disclosure" className="text-sm font-medium">
+                      Allow the creator to see my identity
+                    </Label>
+                  </div>
+                  <Switch
                     id="allow-disclosure"
                     checked={allowDisclosure}
-                    onChange={(e) => setAllowDisclosure(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
+                    onCheckedChange={setAllowDisclosure}
                   />
-                  <Label htmlFor="allow-disclosure" className="text-sm">
-                    Allow the creator to see my identity
-                  </Label>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <Button 
@@ -1608,7 +1904,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                       value={reserverEmail}
                       onChange={(e) => setReserverEmail(e.target.value)}
                       placeholder="Enter your email to receive updates"
-                      autoFocus
                     />
                     <p className="text-xs text-gray-500">
                       {allowDisclosure && !reserverEmail && !displayName ? 
@@ -1638,17 +1933,17 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                       placeholder="A secret word to identify your reservation"
                     />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="allow-disclosure-mobile" className="text-sm font-medium">
+                        Allow the creator to see my identity
+                      </Label>
+                    </div>
+                    <Switch
                       id="allow-disclosure-mobile"
                       checked={allowDisclosure}
-                      onChange={(e) => setAllowDisclosure(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      onCheckedChange={setAllowDisclosure}
                     />
-                    <Label htmlFor="allow-disclosure-mobile" className="text-sm">
-                      Allow the creator to see my identity
-                    </Label>
                   </div>
                 </form>
               </div>
