@@ -315,9 +315,36 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       
       // Include the token in the request if it exists
       const response = await fetch(`/api/wishlists/${resolvedParams.id}${shareToken ? `?token=${shareToken}` : ''}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch wishlist');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch wishlist' }));
+        
+        // Handle specific error cases
+        if (response.status === 404) {
+          toast.error('Wishlist not found', {
+            description: 'This wishlist does not exist or has been deleted.',
+          });
+          // Redirect to home after a delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+          return;
+        }
+        
+        if (response.status === 403) {
+          toast.error('Access denied', {
+            description: errorData.error || 'You do not have permission to view this wishlist.',
+          });
+          // Redirect to home after a delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+          return;
+        }
+        
+        throw new Error(errorData.error || 'Failed to fetch wishlist');
       }
+      
       const data = await response.json();
       setWishlist(data);
       setUserPermissions(data.userPermissions || { canEdit: false, isOwner: false });
@@ -326,6 +353,10 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to fetch wishlist',
       });
+      // Redirect to home on unexpected errors
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
     } finally {
       setIsLoading(false);
     }

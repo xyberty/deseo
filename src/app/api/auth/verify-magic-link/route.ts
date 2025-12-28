@@ -88,13 +88,18 @@ export async function GET(request: Request) {
     // Migrate anonymous wishlists to authenticated user
     await migrateAnonymousWishlists(db, email);
 
-    // Create response with redirect
-    const response = NextResponse.redirect(new URL('/', request.url));
+    // Create response with redirect to home page
+    // Use the request URL to preserve the current domain (staging or production)
+    const requestUrl = new URL(request.url);
+    const redirectUrl = new URL('/', `${requestUrl.protocol}//${requestUrl.host}`);
+    const response = NextResponse.redirect(redirectUrl);
 
     // Set secure cookie with proper attributes
+    // Use secure cookies if the request is HTTPS (works for staging and production)
+    const isSecure = requestUrl.protocol === 'https:' || process.env.NODE_ENV === "production";
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7, // 7 days

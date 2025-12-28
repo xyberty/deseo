@@ -34,12 +34,19 @@ export default function CreateWishlist() {
       }
 
       const data = await response.json();
+      
+      if (!data.id) {
+        throw new Error('Wishlist created but no ID returned');
+      }
+      
       toast.success('Wishlist created!', {
         description: 'Your wishlist has been created successfully.',
       });
       
-      // Redirect to the wishlist page
-      window.location.href = `/wishlist/${data.id}`;
+      // Small delay to ensure cookie is set before redirect
+      setTimeout(() => {
+        window.location.href = `/wishlist/${data.id}`;
+      }, 100);
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Something went wrong',
