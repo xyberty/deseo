@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
 import { use } from 'react';
-import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings, ChevronsUpDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
@@ -86,6 +86,7 @@ function AddItemForm({
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
             placeholder="Enter item name"
+            autoComplete="off"
             required
           />
         </div>
@@ -97,6 +98,7 @@ function AddItemForm({
             value={newItemUrl}
             onChange={(e) => setNewItemUrl(e.target.value)}
             placeholder="https://example.com/item"
+            autoComplete="off"
           />
         </div>
         <div className="grid gap-1">
@@ -111,6 +113,7 @@ function AddItemForm({
               min="0"
               step="0.01"
               className="flex-1"
+              autoComplete="off"
             />
             <Select 
               value={newItemCurrency} 
@@ -136,7 +139,7 @@ function AddItemForm({
         <CollapsibleTrigger asChild>
           <Button type="button" variant="ghost" className="w-full justify-between">
             <span>More details</span>
-            <span>{showMoreDetails ? '−' : '+'}</span>
+            <span><ChevronsUpDown /></span>
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-2 pt-2">
@@ -158,6 +161,7 @@ function AddItemForm({
               value={newItemImageUrl}
               onChange={(e) => setNewItemImageUrl(e.target.value)}
               placeholder="https://example.com/image.jpg"
+              autoComplete="off"
             />
           </div>
         </CollapsibleContent>
@@ -166,6 +170,140 @@ function AddItemForm({
       {/* Desktop only - Save button (mobile has sticky footer) */}
       <div className="hidden md:flex justify-end gap-2 pt-2">
         <Button type="submit">Save</Button>
+      </div>
+    </form>
+  );
+}
+
+// Edit Item Form Component
+interface EditItemFormProps {
+  editingItem: WishlistItem | null;
+  setEditingItem: (item: WishlistItem | null) => void;
+  listCurrency: string;
+  handleEditItem: (e: React.FormEvent) => void;
+  autoFocus?: boolean;
+}
+
+function EditItemForm({
+  editingItem,
+  setEditingItem,
+  listCurrency,
+  handleEditItem,
+  autoFocus = false,
+}: EditItemFormProps) {
+  const [showMoreDetails, setShowMoreDetails] = useState(true);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus && nameInputRef.current && editingItem) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [autoFocus, editingItem]);
+
+  // Don't render if no item to edit
+  if (!editingItem) {
+    return <div>No item selected</div>;
+  }
+
+  return (
+    <form onSubmit={handleEditItem} className="space-y-4">
+      {/* Required fields */}
+      <div className="grid gap-2">
+        <div className="grid gap-1">
+          <Label htmlFor="edit-name">Title *</Label>
+          <Input 
+            id="edit-name"
+            ref={nameInputRef}
+            value={editingItem.name || ''}
+            onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+            placeholder="Enter item name"
+            autoComplete="off"
+            required
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="edit-url">URL</Label>
+          <Input 
+            id="edit-url"
+            type="url"
+            value={editingItem.url || ''}
+            onChange={(e) => setEditingItem({ ...editingItem, url: e.target.value })}
+            placeholder="https://example.com/item"
+            autoComplete="off"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="edit-price">Price</Label>
+          <div className="flex gap-2">
+            <Input 
+              id="edit-price"
+              type="number"
+              step="0.01"
+              value={editingItem.price || ''}
+              onChange={(e) => setEditingItem({ ...editingItem, price: parseFloat(e.target.value) || 0 })}
+              placeholder="Enter price"
+              min="0"
+              className="flex-1"
+              autoComplete="off"
+            />
+            <Select 
+              value={editingItem.currency || listCurrency} 
+              onValueChange={(value) => setEditingItem({ ...editingItem, currency: value })}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map((curr) => (
+                  <SelectItem key={curr.alpha3} value={curr.alpha3}>
+                    {curr.alpha3} — {curr.symbol}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Optional fields in Collapsible */}
+      <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
+        <CollapsibleTrigger asChild>
+          <Button type="button" variant="ghost" className="w-full justify-between">
+            <span>More details</span>
+            <span><ChevronsUpDown /></span>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-2 pt-2">
+          <div className="grid gap-1">
+            <Label htmlFor="edit-description">Description</Label>
+            <Textarea 
+              id="edit-description"
+              value={editingItem.description || ''}
+              onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+              placeholder="Add a description"
+              rows={3}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="edit-image-url">Image URL</Label>
+            <Input 
+              id="edit-image-url"
+              type="url"
+              value={editingItem.imageUrl || ''}
+              onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })}
+              placeholder="https://example.com/image.jpg"
+              autoComplete="off"
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Desktop only - Save button (mobile has sticky footer) */}
+      <div className="hidden md:flex justify-end gap-2 pt-2">
+        <Button type="submit">Save Changes</Button>
       </div>
     </form>
   );
@@ -197,6 +335,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [userPermissions, setUserPermissions] = useState<UserPermissions>({ canEdit: false, isOwner: false });
   const [isPublic, setIsPublic] = useState(false);
   const [allowEdits, setAllowEdits] = useState(false);
+  const [wishlistTitle, setWishlistTitle] = useState('');
+  const [wishlistDescription, setWishlistDescription] = useState('');
   const [shareUrl, setShareUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
   const [shortCode, setShortCode] = useState('');
@@ -250,6 +390,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       setIsPublic(wishlist.isPublic);
       setAllowEdits(wishlist.allowEdits);
       setIsArchived(wishlist.isArchived || false);
+      setWishlistTitle(wishlist.title || '');
+      setWishlistDescription(wishlist.description || '');
       const currentListCurrency = wishlist.currency || DEFAULT_CURRENCY;
       setListCurrency(currentListCurrency);
       // Update new item currency to match list currency when wishlist loads
@@ -539,6 +681,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          title: wishlistTitle,
+          description: wishlistDescription,
           isPublic, 
           allowEdits,
           currency: listCurrency
@@ -718,7 +862,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 variant="outline" 
                 size="icon" 
                 onClick={() => setShowSettingsDialog(true)}
-                title="Privacy Settings"
+                title="Wishlist Settings"
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -739,26 +883,28 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
             <>
               {isDesktop ? (
                 <Dialog open={addItemOpen} onOpenChange={handleAddItemDialogChange}>
-                  <DialogContent className="sm:max-w-[425px]">
+                  <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
                     <DialogHeader>
                       <DialogTitle>Add Item</DialogTitle>
                     </DialogHeader>
-                    <AddItemForm
-                      newItemName={newItemName}
-                      setNewItemName={setNewItemName}
-                      newItemDescription={newItemDescription}
-                      setNewItemDescription={setNewItemDescription}
-                      newItemPrice={newItemPrice}
-                      setNewItemPrice={setNewItemPrice}
-                      newItemCurrency={newItemCurrency}
-                      setNewItemCurrency={setNewItemCurrency}
-                      newItemUrl={newItemUrl}
-                      setNewItemUrl={setNewItemUrl}
-                      newItemImageUrl={newItemImageUrl}
-                      setNewItemImageUrl={setNewItemImageUrl}
-                      handleAddItem={handleAddItem}
-                      autoFocus={true}
-                    />
+                    <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
+                      <AddItemForm
+                        newItemName={newItemName}
+                        setNewItemName={setNewItemName}
+                        newItemDescription={newItemDescription}
+                        setNewItemDescription={setNewItemDescription}
+                        newItemPrice={newItemPrice}
+                        setNewItemPrice={setNewItemPrice}
+                        newItemCurrency={newItemCurrency}
+                        setNewItemCurrency={setNewItemCurrency}
+                        newItemUrl={newItemUrl}
+                        setNewItemUrl={setNewItemUrl}
+                        newItemImageUrl={newItemImageUrl}
+                        setNewItemImageUrl={setNewItemImageUrl}
+                        handleAddItem={handleAddItem}
+                        autoFocus={true}
+                      />
+                    </div>
                   </DialogContent>
                 </Dialog>
               ) : (
@@ -792,7 +938,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                           autoFocus={true}
                         />
                       </div>
-                      <DrawerFooter className="sticky bottom-0 bg-background border-t pt-4 pb-safe">
+                      <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
                         <Button onClick={handleAddItem} className="w-full">Save</Button>
                         <DrawerClose asChild>
                           <Button variant="outline" className="w-full">Cancel</Button>
@@ -883,30 +1029,28 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
             <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6">
               <div className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Privacy</h3>
+                <h3 className="text-lg font-medium">Details</h3>
                 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="public-toggle" className="font-medium">Public Wishlist</Label>
-                    <p className="text-sm text-gray-500">Anyone can view using just the wishlist ID.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isPublic}
-                    onChange={(e) => setIsPublic(e.target.checked)}
+                <div className="grid gap-2">
+                  <Label htmlFor="wishlist-title">Title</Label>
+                  <Input
+                    id="wishlist-title"
+                    value={wishlistTitle}
+                    onChange={(e) => setWishlistTitle(e.target.value)}
+                    placeholder="Enter wishlist title"
                     disabled={isArchived}
+                    autoComplete="off"
                   />
                 </div>
                 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="edits-toggle" className="font-medium">Allow Edits</Label>
-                    <p className="text-sm text-gray-500">Anyone with access can add or edit items</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={allowEdits}
-                    onChange={(e) => setAllowEdits(e.target.checked)}
+                <div className="grid gap-2">
+                  <Label htmlFor="wishlist-description">Description (optional)</Label>
+                  <Textarea
+                    id="wishlist-description"
+                    value={wishlistDescription}
+                    onChange={(e) => setWishlistDescription(e.target.value)}
+                    placeholder="Add a description for your wishlist"
+                    rows={3}
                     disabled={isArchived}
                   />
                 </div>
@@ -983,6 +1127,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                               placeholder="Enter custom code (3-20 chars)"
                               className="font-mono text-xs sm:text-sm"
                               maxLength={20}
+                              autoComplete="off"
                             />
                             <p className="text-xs text-gray-500 mt-1">
                               Alphanumeric only, 3-20 characters
@@ -1069,6 +1214,37 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                   </div>
                 )}
               </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Privacy</h3>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="public-toggle" className="font-medium">Public Wishlist</Label>
+                    <p className="text-sm text-gray-500">Anyone can view using just the wishlist ID.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isPublic}
+                    onChange={(e) => setIsPublic(e.target.checked)}
+                    disabled={isArchived}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edits-toggle" className="font-medium">Allow Edits</Label>
+                    <p className="text-sm text-gray-500">Anyone with access can add or edit items</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={allowEdits}
+                    onChange={(e) => setAllowEdits(e.target.checked)}
+                    disabled={isArchived}
+                  />
+                </div>
+              </div>
+              
 
               <div className="space-y-4">
                 <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
@@ -1277,86 +1453,50 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         )}
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Edit Item</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Name</Label>
-              <Input
-                id="edit-name"
-                value={editingItem?.name || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, name: e.target.value} : null)}
+      {/* Edit Dialog/Drawer */}
+      {isDesktop ? (
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Edit Item</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
+              <EditItemForm
+                editingItem={editingItem}
+                setEditingItem={setEditingItem}
+                listCurrency={listCurrency}
+                handleEditItem={handleEditItem}
+                autoFocus={true}
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-description">Description (optional)</Label>
-              <Textarea
-                id="edit-description"
-                value={editingItem?.description || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, description: e.target.value} : null)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-price">Price (optional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="edit-price"
-                  type="number"
-                  step="0.01"
-                  value={editingItem?.price || ''}
-                  onChange={(e) => setEditingItem(prev => prev ? {...prev, price: parseFloat(e.target.value) || 0} : null)}
-                  className="flex-1"
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DrawerContent className="max-h-[90vh]">
+            <div className="mx-auto w-full max-w-sm">
+              <DrawerHeader className="text-left pb-2 px-4 pt-2">
+                <DrawerTitle className="text-base">Edit Item</DrawerTitle>
+              </DrawerHeader>
+              <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+                <EditItemForm
+                  editingItem={editingItem}
+                  setEditingItem={setEditingItem}
+                  listCurrency={listCurrency}
+                  handleEditItem={handleEditItem}
+                  autoFocus={true}
                 />
-                <Select 
-                  value={editingItem?.currency || listCurrency} 
-                  onValueChange={(value) => setEditingItem(prev => prev ? {...prev, currency: value} : null)}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map((curr) => (
-                      <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                        {curr.alpha3} — {curr.symbol}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
+              <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
+                <Button onClick={handleEditItem} className="w-full">Save Changes</Button>
+                <DrawerClose asChild>
+                  <Button variant="outline" className="w-full">Cancel</Button>
+                </DrawerClose>
+              </DrawerFooter>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-url">URL (optional)</Label>
-              <Input
-                id="edit-url"
-                type="url"
-                value={editingItem?.url || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, url: e.target.value} : null)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-image-url">Image URL (optional)</Label>
-              <Input
-                id="edit-image-url"
-                type="url"
-                value={editingItem?.imageUrl || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, imageUrl: e.target.value} : null)}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">
-              Cancel
-            </Button>
-            <Button onClick={handleEditItem} className="w-full sm:w-auto">
-              Save Changes
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DrawerContent>
+        </Drawer>
+      )}
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -1378,77 +1518,157 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         </DialogContent>
       </Dialog>
 
-      {/* Reserve Dialog */}
-      <Dialog open={reserveDialogOpen} onOpenChange={setReserveDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Reserve Item</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleReserveItem}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="reserver-email">Your Email (optional)</Label>
-                <Input
-                  id="reserver-email"
-                  type="email"
-                  value={reserverEmail}
-                  onChange={(e) => setReserverEmail(e.target.value)}
-                  placeholder="Enter your email to receive updates"
-                />
-                <p className="text-xs text-gray-500">
-                  {allowDisclosure && !reserverEmail && !displayName ? 
-                    "Please provide either an email or display name if you want to be identified" : 
-                    "Your email will only be visible to the wishlist creator if you allow disclosure"}
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="display-name">Display Name (optional)</Label>
-                <Input
-                  id="display-name"
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="How you'd like to be identified"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="passphrase">Passphrase (optional)</Label>
-                <Input
-                  id="passphrase"
-                  type="text"
-                  value={passphrase}
-                  onChange={(e) => setPassphrase(e.target.value)}
-                  placeholder="A secret word to identify your reservation"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="allow-disclosure"
-                  checked={allowDisclosure}
-                  onChange={(e) => setAllowDisclosure(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <Label htmlFor="allow-disclosure" className="text-sm">
-                  Allow the creator to see my identity
-                </Label>
-              </div>
+      {/* Reserve Dialog/Drawer */}
+      {isDesktop ? (
+        <Dialog open={reserveDialogOpen} onOpenChange={setReserveDialogOpen}>
+          <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Reserve Item</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
+              <form onSubmit={handleReserveItem} id="reserve-item-form" className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="reserver-email">Your Email (optional)</Label>
+                  <Input
+                    id="reserver-email"
+                    type="email"
+                    autoComplete="off"
+                    value={reserverEmail}
+                    onChange={(e) => setReserverEmail(e.target.value)}
+                    placeholder="Enter your email to receive updates"
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-500">
+                    {allowDisclosure && !reserverEmail && !displayName ? 
+                      "Please provide either an email or display name if you want to be identified" : 
+                      "Your email will only be visible to the wishlist creator if you allow disclosure"}
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="display-name">Display Name (optional)</Label>
+                  <Input
+                    id="display-name"
+                    type="text"
+                    autoComplete="off"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="How you'd like to be identified"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="passphrase">Passphrase (optional)</Label>
+                  <Input
+                    id="passphrase"
+                    type="text"
+                    autoComplete="off"
+                    value={passphrase}
+                    onChange={(e) => setPassphrase(e.target.value)}
+                    placeholder="A secret word to identify your reservation"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="allow-disclosure"
+                    checked={allowDisclosure}
+                    onChange={(e) => setAllowDisclosure(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="allow-disclosure" className="text-sm">
+                    Allow the creator to see my identity
+                  </Label>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button 
+                    type="submit"
+                    disabled={allowDisclosure && !reserverEmail && !displayName}
+                  >
+                    Reserve
+                  </Button>
+                </div>
+              </form>
             </div>
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setReserveDialogOpen(false)} className="w-full sm:w-auto">
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={allowDisclosure && !reserverEmail && !displayName}
-                className="w-full sm:w-auto"
-              >
-                Reserve
-              </Button>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={reserveDialogOpen} onOpenChange={setReserveDialogOpen}>
+          <DrawerContent className="max-h-[90vh]">
+            <div className="mx-auto w-full max-w-sm">
+              <DrawerHeader className="text-left pb-2 px-4 pt-2">
+                <DrawerTitle className="text-base">Reserve Item</DrawerTitle>
+              </DrawerHeader>
+              <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+                <form onSubmit={handleReserveItem} id="reserve-item-form" className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="reserver-email-mobile">Your Email (optional)</Label>
+                    <Input
+                      id="reserver-email-mobile"
+                      type="email"
+                      autoComplete="off"
+                      value={reserverEmail}
+                      onChange={(e) => setReserverEmail(e.target.value)}
+                      placeholder="Enter your email to receive updates"
+                      autoFocus
+                    />
+                    <p className="text-xs text-gray-500">
+                      {allowDisclosure && !reserverEmail && !displayName ? 
+                        "Please provide either an email or display name if you want to be identified" : 
+                        "Your email will only be visible to the wishlist creator if you allow disclosure"}
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="display-name-mobile">Display Name (optional)</Label>
+                    <Input
+                      id="display-name-mobile"
+                      type="text"
+                      autoComplete="off"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="How you'd like to be identified"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="passphrase-mobile">Passphrase (optional)</Label>
+                    <Input
+                      id="passphrase-mobile"
+                      type="text"
+                      autoComplete="off"
+                      value={passphrase}
+                      onChange={(e) => setPassphrase(e.target.value)}
+                      placeholder="A secret word to identify your reservation"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="allow-disclosure-mobile"
+                      checked={allowDisclosure}
+                      onChange={(e) => setAllowDisclosure(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="allow-disclosure-mobile" className="text-sm">
+                      Allow the creator to see my identity
+                    </Label>
+                  </div>
+                </form>
+              </div>
+              <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
+                <Button 
+                  type="submit"
+                  form="reserve-item-form"
+                  disabled={allowDisclosure && !reserverEmail && !displayName}
+                  className="w-full"
+                >
+                  Reserve
+                </Button>
+                <DrawerClose asChild>
+                  <Button variant="outline" className="w-full">Cancel</Button>
+                </DrawerClose>
+              </DrawerFooter>
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
     </>
   );
