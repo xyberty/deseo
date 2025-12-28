@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import * as React from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
@@ -15,7 +16,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import Image from 'next/image';
-import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/app/components/ui/drawer";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
+import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
 import { getBaseUrl } from '@/app/lib/constants';
 
@@ -23,6 +26,151 @@ import { getBaseUrl } from '@/app/lib/constants';
 interface UserPermissions {
   canEdit: boolean;
   isOwner: boolean;
+}
+
+// Add Item Form Component
+interface AddItemFormProps {
+  newItemName: string;
+  setNewItemName: (value: string) => void;
+  newItemDescription: string;
+  setNewItemDescription: (value: string) => void;
+  newItemPrice: string;
+  setNewItemPrice: (value: string) => void;
+  newItemCurrency: string;
+  setNewItemCurrency: (value: string) => void;
+  newItemUrl: string;
+  setNewItemUrl: (value: string) => void;
+  newItemImageUrl: string;
+  setNewItemImageUrl: (value: string) => void;
+  listCurrency: string;
+  handleAddItem: (e: React.FormEvent) => void;
+  autoFocus?: boolean;
+}
+
+function AddItemForm({
+  newItemName,
+  setNewItemName,
+  newItemDescription,
+  setNewItemDescription,
+  newItemPrice,
+  setNewItemPrice,
+  newItemCurrency,
+  setNewItemCurrency,
+  newItemUrl,
+  setNewItemUrl,
+  newItemImageUrl,
+  setNewItemImageUrl,
+  listCurrency,
+  handleAddItem,
+  autoFocus = false,
+}: AddItemFormProps) {
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus && nameInputRef.current) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [autoFocus]);
+
+  return (
+    <form onSubmit={handleAddItem} className="space-y-4">
+      {/* Required fields */}
+      <div className="grid gap-2">
+        <div className="grid gap-1">
+          <Label htmlFor="name">Title *</Label>
+          <Input 
+            id="name"
+            ref={nameInputRef}
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+            placeholder="Enter item name"
+            required
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="url">URL</Label>
+          <Input 
+            id="url"
+            type="url"
+            value={newItemUrl}
+            onChange={(e) => setNewItemUrl(e.target.value)}
+            placeholder="https://example.com/item"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="price">Price</Label>
+          <div className="flex gap-2">
+            <Input 
+              id="price"
+              type="number"
+              value={newItemPrice}
+              onChange={(e) => setNewItemPrice(e.target.value)}
+              placeholder="Enter price"
+              min="0"
+              step="0.01"
+              className="flex-1"
+            />
+            <Select 
+              value={newItemCurrency} 
+              onValueChange={setNewItemCurrency}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map((curr) => (
+                  <SelectItem key={curr.alpha3} value={curr.alpha3}>
+                    {curr.alpha3} — {curr.symbol}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Optional fields in Collapsible */}
+      <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
+        <CollapsibleTrigger asChild>
+          <Button type="button" variant="ghost" className="w-full justify-between">
+            <span>More details</span>
+            <span>{showMoreDetails ? '−' : '+'}</span>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-2 pt-2">
+          <div className="grid gap-1">
+            <Label htmlFor="description">Description</Label>
+            <Textarea 
+              id="description"
+              value={newItemDescription}
+              onChange={(e) => setNewItemDescription(e.target.value)}
+              placeholder="Add a description"
+              rows={3}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="imageUrl">Image URL</Label>
+            <Input 
+              id="imageUrl"
+              type="url"
+              value={newItemImageUrl}
+              onChange={(e) => setNewItemImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Desktop only - Save button (mobile has sticky footer) */}
+      <div className="hidden md:flex justify-end gap-2 pt-2">
+        <Button type="submit">Save</Button>
+      </div>
+    </form>
+  );
 }
 
 export default function WishlistPage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,6 +211,21 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   } | null>(null);
   const [listCurrency, setListCurrency] = useState(DEFAULT_CURRENCY);
   const [isArchived, setIsArchived] = useState(false);
+  const [addItemOpen, setAddItemOpen] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  const handleAddItemDialogChange = (open: boolean) => {
+    setAddItemOpen(open);
+    if (!open) {
+      // Reset form when closing
+      setNewItemName('');
+      setNewItemDescription('');
+      setNewItemPrice('');
+      setNewItemCurrency(listCurrency);
+      setNewItemUrl('');
+      setNewItemImageUrl('');
+    }
+  };
   
   // Add keyboard event listener for Escape key
   useEffect(() => {
@@ -210,6 +373,9 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
 
       if (!response.ok) throw new Error('Failed to add item');
 
+      const data = await response.json();
+      const newItemId = data.item?.id;
+
       // Reset form
       setNewItemName('');
       setNewItemDescription('');
@@ -218,9 +384,25 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       setNewItemUrl('');
       setNewItemImageUrl('');
 
+      // Close the drawer/dialog
+      setAddItemOpen(false);
+
       // Refresh wishlist
-      fetchWishlist();
+      await fetchWishlist();
+
       toast.success('Item added successfully');
+
+      // Scroll to the new item and highlight it
+      setTimeout(() => {
+        const itemElement = document.querySelector(`[data-item-id="${newItemId}"]`);
+        if (itemElement) {
+          itemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          itemElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+          setTimeout(() => {
+            itemElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+          }, 2000);
+        }
+      }, 100);
     } catch (error) {
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to add item',
@@ -525,94 +707,81 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
           
           {/* Show "Add Item" button only for users with edit permission and not archived */}
           {userPermissions.canEdit && !wishlist.isArchived && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button>
+            <>
+              {isDesktop ? (
+                <Dialog open={addItemOpen} onOpenChange={handleAddItemDialogChange}>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Add Item</DialogTitle>
+                    </DialogHeader>
+                    <AddItemForm
+                      newItemName={newItemName}
+                      setNewItemName={setNewItemName}
+                      newItemDescription={newItemDescription}
+                      setNewItemDescription={setNewItemDescription}
+                      newItemPrice={newItemPrice}
+                      setNewItemPrice={setNewItemPrice}
+                      newItemCurrency={newItemCurrency}
+                      setNewItemCurrency={setNewItemCurrency}
+                      newItemUrl={newItemUrl}
+                      setNewItemUrl={setNewItemUrl}
+                      newItemImageUrl={newItemImageUrl}
+                      setNewItemImageUrl={setNewItemImageUrl}
+                      listCurrency={listCurrency}
+                      handleAddItem={handleAddItem}
+                      autoFocus={true}
+                    />
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <Drawer open={addItemOpen} onOpenChange={handleAddItemDialogChange}>
+                  <DrawerTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4" />
+                      Add Item
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent className="max-h-[90vh]">
+                    <div className="mx-auto w-full max-w-sm">
+                      <DrawerHeader className="text-left pb-2 px-4 pt-2">
+                        <DrawerTitle className="text-base">Add Item</DrawerTitle>
+                      </DrawerHeader>
+                      <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+                        <AddItemForm
+                          newItemName={newItemName}
+                          setNewItemName={setNewItemName}
+                          newItemDescription={newItemDescription}
+                          setNewItemDescription={setNewItemDescription}
+                          newItemPrice={newItemPrice}
+                          setNewItemPrice={setNewItemPrice}
+                          newItemCurrency={newItemCurrency}
+                          setNewItemCurrency={setNewItemCurrency}
+                          newItemUrl={newItemUrl}
+                          setNewItemUrl={setNewItemUrl}
+                          newItemImageUrl={newItemImageUrl}
+                          setNewItemImageUrl={setNewItemImageUrl}
+                          listCurrency={listCurrency}
+                          handleAddItem={handleAddItem}
+                          autoFocus={true}
+                        />
+                      </div>
+                      <DrawerFooter className="sticky bottom-0 bg-background border-t pt-4 pb-safe">
+                        <Button onClick={handleAddItem} className="w-full">Save</Button>
+                        <DrawerClose asChild>
+                          <Button variant="outline" className="w-full">Cancel</Button>
+                        </DrawerClose>
+                      </DrawerFooter>
+                    </div>
+                  </DrawerContent>
+                </Drawer>
+              )}
+              {isDesktop && (
+                <Button onClick={() => setAddItemOpen(true)}>
                   <Plus className="h-4 w-4" />
                   Add Item
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[calc(100vw-2rem)] max-w-80 sm:w-80">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium leading-none">Add Item</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Add a new item to your wishlist.
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    <div className="grid gap-1">
-                      <Label htmlFor="name">Name</Label>
-                      <Input 
-                        id="name"
-                        value={newItemName}
-                        onChange={(e) => setNewItemName(e.target.value)}
-                        placeholder="Enter item name"
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="description">Description (optional)</Label>
-                      <Textarea 
-                        id="description"
-                        value={newItemDescription}
-                        onChange={(e) => setNewItemDescription(e.target.value)}
-                        placeholder="Add a description"
-                        rows={3}
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="price">Price (optional)</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                          id="price"
-                          type="number"
-                          value={newItemPrice}
-                          onChange={(e) => setNewItemPrice(e.target.value)}
-                          placeholder="Enter price"
-                          min="0"
-                          step="0.01"
-                          className="flex-1"
-                        />
-                        <Select 
-                          value={newItemCurrency} 
-                          onValueChange={setNewItemCurrency}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Select currency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CURRENCIES.map((curr) => (
-                              <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                                {curr.alpha3} — {curr.symbol}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="url">URL (optional)</Label>
-                      <Input 
-                        id="url"
-                        value={newItemUrl}
-                        onChange={(e) => setNewItemUrl(e.target.value)}
-                        placeholder="https://example.com/item"
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="imageUrl">Image URL (optional)</Label>
-                      <Input 
-                        id="imageUrl"
-                        value={newItemImageUrl}
-                        onChange={(e) => setNewItemImageUrl(e.target.value)}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
-                    <Button onClick={handleAddItem}>Add Item</Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -950,7 +1119,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
           </div>
         ) : (
           wishlist.items.map((item) => (
-            <Card key={item.id} className="group relative gap-0 py-0">
+            <Card key={item.id} data-item-id={item.id} className="group relative gap-0 py-0">
               {/* Show edit/delete buttons only for users with edit permission and not archived */}
               {userPermissions.canEdit && !wishlist.isArchived && (
                 <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
