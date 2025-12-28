@@ -248,7 +248,7 @@ export function SettingsForm({
                     disabled={isArchived}
                     className="font-mono text-xs break-all"
                   />
-                  <Button variant="outline" size="sm" onClick={() => {
+                  <Button variant="outline" onClick={() => {
                     navigator.clipboard.writeText(shareUrl);
                     toast.success('Full link copied');
                   }} disabled={isArchived}>

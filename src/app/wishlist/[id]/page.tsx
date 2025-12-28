@@ -760,7 +760,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               Save Changes
             </Button>
             <Button 
-              variant={isArchived ? "default" : "secondary"}
+              variant="secondary"
               size="lg"
               onClick={handleArchiveToggle}
               className="w-full sm:w-auto"

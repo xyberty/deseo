@@ -53,16 +53,16 @@ export function ResponsiveDialog({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
-      <DrawerContent style={{ maxHeight }}>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader className="text-left pb-2 px-4 pt-2">
+      <DrawerContent style={{ maxHeight }} className="flex flex-col">
+        <div className="mx-auto w-full max-w-sm flex flex-col flex-1 min-h-0">
+          <DrawerHeader className="text-left pb-2 px-4 pt-2 flex-shrink-0">
             <DrawerTitle className="text-base">{title}</DrawerTitle>
           </DrawerHeader>
-          <div className="overflow-y-auto px-4 pb-12" style={{ maxHeight: `calc(${maxHeight} - 140px)` }}>
+          <div className="overflow-y-auto px-4 pb-4 flex-1 min-h-0">
             {children}
           </div>
           {footer && (
-            <DrawerFooter className="sticky bottom-0 bg-background pt-4 pb-safe">
+            <DrawerFooter className="sticky bottom-0 pt-4 pb-safe bg-background flex-shrink-0">
               {footer}
             </DrawerFooter>
           )}
