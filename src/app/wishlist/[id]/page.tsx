@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as React from 'react';
 import { Button } from '@/app/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
 import { use } from 'react';
@@ -13,10 +12,8 @@ import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import Image from 'next/image';
 import { DrawerClose } from "@/app/components/ui/drawer";
-import { Switch } from "@/app/components/ui/switch";
-import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from "@/app/components/ui/field";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
-import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
+import { DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
 import { getBaseUrl } from '@/app/lib/constants';
 import { ResponsiveDialog } from '@/app/components/ResponsiveDialog';
 import { SettingsForm } from '@/app/components/SettingsForm';
@@ -67,6 +64,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [isArchived, setIsArchived] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [isDeletingItem, setIsDeletingItem] = useState(false);
+  const [isDeletingWishlist, setIsDeletingWishlist] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handleAddItemDialogChange = (open: boolean) => {
@@ -245,15 +243,35 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   }, [fetchWishlist]);
 
   const handleItemUpdated = useCallback((updatedItem: WishlistItem) => {
-    fetchWishlist();
+    // Optimistically update the local state
+    setWishlist((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((item) =>
+          item.id === updatedItem.id ? updatedItem : item
+        ),
+      };
+    });
     setEditDialogOpen(false);
     setEditingItem(null);
+    // Optionally refetch to ensure consistency (can be removed if optimistic updates are sufficient)
+    fetchWishlist();
   }, [fetchWishlist]);
 
   const handleItemDeleted = useCallback((itemId: string) => {
-    fetchWishlist();
+    // Optimistically update the local state
+    setWishlist((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.filter((item) => item.id !== itemId),
+      };
+    });
     setEditDialogOpen(false);
     setEditingItem(null);
+    // Optionally refetch to ensure consistency (can be removed if optimistic updates are sufficient)
+    fetchWishlist();
   }, [fetchWishlist]);
 
   const handleDeleteItemConfirm = async () => {
@@ -318,8 +336,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     }
   };
 
-  // Update privacy settings
-  const updatePrivacySettings = async () => {
+  // Update wishlist settings (title, description, currency, and privacy settings)
+  const updateWishlistSettings = async () => {
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}`, {
         method: 'PATCH',
@@ -334,7 +352,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update privacy settings');
+        throw new Error('Failed to update wishlist settings');
       }
       
       toast.success('Settings updated');
@@ -412,6 +430,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   };
 
   const handleDeleteWishlist = async () => {
+    setIsDeletingWishlist(true);
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}`, {
         method: 'DELETE',
@@ -425,6 +444,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       // Redirect to home page after deletion
       window.location.href = '/';
     } catch (error) {
+      setIsDeletingWishlist(false);
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to delete wishlist',
       });
@@ -595,7 +615,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         contentClassName="sm:max-w-[600px]"
         footer={
           <>
-            <Button size="lg" className="w-full sm:w-auto">
+            <Button size="lg" className="w-full sm:w-auto" onClick={updateWishlistSettings}>
               Save Changes
             </Button>
             <Button 
@@ -644,27 +664,57 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       </ResponsiveDialog>
 
       {/* Delete Wishlist Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Delete Wishlist</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-gray-600">
-              Are you sure you want to delete this wishlist? This action cannot be undone.
-              All items and reservations will be permanently deleted.
-            </p>
-          </div>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} className="w-full sm:w-auto">
+      <ResponsiveDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Wishlist"
+        contentClassName="sm:max-w-lg"
+        footer={!isDesktop ? (
+          <>
+            <Button 
+              variant="destructive"
+              size="lg"
+              onClick={handleDeleteWishlist}
+              disabled={isDeletingWishlist}
+              className="w-full"
+            >
+              Delete Wishlist
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" size="lg" className="w-full" disabled={isDeletingWishlist}>
+                Cancel
+              </Button>
+            </DrawerClose>
+          </>
+        ) : undefined}
+      >
+        <div className="py-4">
+          <p>
+            Are you sure you want to delete this wishlist? This action cannot be undone.
+            All items and reservations will be permanently deleted.
+          </p>
+        </div>
+        {isDesktop && (
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteDialog(false)} 
+              disabled={isDeletingWishlist}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteWishlist} className="w-full sm:w-auto">
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteWishlist}
+              disabled={isDeletingWishlist}
+              className="w-full sm:w-auto"
+            >
               Delete Wishlist
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+      </ResponsiveDialog>
 
       {/* Items grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
