@@ -40,7 +40,7 @@ export function ResponsiveDialog({
             {children}
           </div>
           {footer && (
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
               {footer}
             </div>
           )}
@@ -57,11 +57,13 @@ export function ResponsiveDialog({
           <DrawerHeader className="text-left pb-2 px-4 pt-2 flex-shrink-0">
             <DrawerTitle className="text-base">{title}</DrawerTitle>
           </DrawerHeader>
-          <div className="overflow-y-auto px-4 pb-4 flex-1 min-h-0">
+          {/* Scrollable content area - footer is excluded from this */}
+          <div className="overflow-y-auto px-4 flex-1 min-h-0">
             {children}
           </div>
+          {/* Footer is outside scrollable area and always visible */}
           {footer && (
-            <DrawerFooter className="sticky bottom-0 pt-4 pb-safe bg-background flex-shrink-0">
+            <DrawerFooter className="pt-4 pb-safe bg-background flex-shrink-0 border-t">
               {footer}
             </DrawerFooter>
           )}

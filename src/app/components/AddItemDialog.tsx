@@ -59,11 +59,12 @@ export function AddItemDialog({
       setShowMoreDetails(false);
     } else if (open && nameInputRef.current) {
       // Auto-focus on both desktop and mobile
+      // Footer is now outside scrollable area, so no scroll issues
       setTimeout(() => {
         nameInputRef.current?.focus();
-      }, 100);
+      }, isDesktop ? 100 : 300); // Slightly longer delay on mobile for drawer animation
     }
-  }, [open, listCurrency]);
+  }, [open, listCurrency, isDesktop]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,7 +159,7 @@ export function AddItemDialog({
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter item name"
               autoComplete="off"
-              autoFocus
+              autoFocus={isDesktop}
               required
             />
           </Field>
