@@ -13,6 +13,7 @@ import { ResponsiveDialog } from './ResponsiveDialog';
 import { DrawerClose } from './ui/drawer';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { toast } from 'sonner';
+import { APP_NAME } from '@/app/lib/constants';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -102,8 +103,8 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="border-b bg-background sticky top-0 z-40">
-        <div className="container mx-auto px-4">
+      <nav className="w-full border-b bg-background sticky top-0 z-40">
+        <div className="container px-0">
           <div className="flex items-center justify-between h-16">
             <Link 
               href="/" 
@@ -116,7 +117,7 @@ export function Navbar() {
                 height={32}
                 className="h-6 w-6 sm:h-8 sm:w-8"
               />
-              <span>Deseo</span>
+              <span>{APP_NAME}</span>
             </Link>
             
             {/* Desktop Navigation */}

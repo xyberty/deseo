@@ -113,7 +113,7 @@ export default function RootLayout({
           <div className="flex min-h-screen flex-col items-center" data-slot="root">
             <div className="container w-full flex-1 flex flex-col">
               <Navbar />
-              <main className="lg:max-w-4xl max-w-full mx-auto w-full py-4 sm:py-6 lg:py-8" data-slot="main">
+              <main className="lg:max-w-4xl max-w-full mx-auto w-full py-2 sm:py-4 lg:py-6" data-slot="main">
                 {children}
               </main>
             </div>
