@@ -104,7 +104,7 @@ export function Navbar() {
   return (
     <>
       <nav className="w-full border-b bg-background sticky top-0 z-40">
-        <div className="container px-0">
+        <div className="container px-4">
           <div className="flex items-center justify-between h-16">
             <Link 
               href="/" 

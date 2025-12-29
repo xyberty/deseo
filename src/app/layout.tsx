@@ -111,8 +111,8 @@ export default function RootLayout({
         <ThemeProvider>
           {gaId && <GoogleAnalytics gaId={gaId} />}
           <div className="flex min-h-screen flex-col items-center" data-slot="root">
+            <Navbar />
             <div className="container w-full flex-1 flex flex-col">
-              <Navbar />
               <main className="lg:max-w-4xl max-w-full mx-auto w-full py-2 sm:py-4 lg:py-6" data-slot="main">
                 {children}
               </main>
