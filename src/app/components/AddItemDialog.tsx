@@ -57,13 +57,13 @@ export function AddItemDialog({
         imageUrl: "",
       });
       setShowMoreDetails(false);
-    } else if (open && isDesktop && nameInputRef.current) {
-      // Auto-focus on desktop
+    } else if (open && nameInputRef.current) {
+      // Auto-focus on both desktop and mobile
       setTimeout(() => {
         nameInputRef.current?.focus();
       }, 100);
     }
-  }, [open, listCurrency, isDesktop]);
+  }, [open, listCurrency]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +158,7 @@ export function AddItemDialog({
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter item name"
               autoComplete="off"
+              autoFocus
               required
             />
           </Field>
