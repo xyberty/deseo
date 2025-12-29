@@ -2,8 +2,7 @@
 
 import * as React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
-import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/app/components/ui/drawer';
-import { Button } from '@/app/components/ui/button';
+import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/app/components/ui/drawer';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { cn } from '@/lib/utils';
 

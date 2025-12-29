@@ -46,6 +46,7 @@ export function MagicLinkForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
+          disabled={isLoading}
           required
         />
       </div>
