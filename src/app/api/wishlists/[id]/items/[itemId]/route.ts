@@ -12,7 +12,7 @@ function buildUpdateObject(data: {
   url?: string;
   imageUrl?: string;
 }) {
-  const update: Record<string, any> = {
+  const update: Record<string, unknown> = {
     "items.$.updatedAt": new Date(),
     updatedAt: new Date()
   };

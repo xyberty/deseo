@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { Wishlist, WishlistItem } from "@/app/types/wishlist";
+import type { WishlistItem } from "@/app/types/wishlist";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
