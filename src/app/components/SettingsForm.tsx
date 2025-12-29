@@ -106,7 +106,6 @@ export function SettingsForm({
               rows={3}
               disabled={isArchived}
             />
-            <FieldDescription>(optional)</FieldDescription>
           </Field>
         </FieldGroup>
       </FieldSet>

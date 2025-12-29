@@ -68,7 +68,7 @@ export function ReserveItemForm({
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Enter your name"
           />
-          <FieldDescription>How you'd like to be identified.</FieldDescription>
+          <FieldDescription>How you would like to be identified.</FieldDescription>
         </Field>
         
         <Field>
