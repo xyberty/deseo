@@ -58,12 +58,12 @@ export function ResponsiveDialog({
             <DrawerTitle className="text-base">{title}</DrawerTitle>
           </DrawerHeader>
           {/* Scrollable content area - footer is excluded from this */}
-          <div className="overflow-y-auto px-4 flex-1 min-h-0">
+          <div className="overflow-y-auto px-4 pb-4 flex-1 min-h-0">
             {children}
           </div>
           {/* Footer is outside scrollable area and always visible */}
           {footer && (
-            <DrawerFooter className="pt-4 pb-safe bg-background flex-shrink-0 border-t">
+            <DrawerFooter className="pt-4 pb-safe bg-background flex-shrink-0">
               {footer}
             </DrawerFooter>
           )}

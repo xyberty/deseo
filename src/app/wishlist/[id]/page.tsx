@@ -807,7 +807,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline text-sm inline-flex items-center gap-1"
+                      className="text-accent-foreground hover:underline text-sm inline-flex items-center gap-1"
                     >
                       View Item
                       <ArrowUpRight className="h-3 w-3"/>
