@@ -81,11 +81,11 @@ export function SettingsForm({
   const editsToggleId = isMobile ? 'edits-toggle-mobile' : 'edits-toggle';
 
   return (
-    <FieldGroup className="py-4 pb-8">
+    <FieldGroup className="py-4 pb-8 gap-4">
       {/* Details Section */}
       <FieldSet>
         <FieldLegend variant={isMobile ? "label" : undefined}>Details</FieldLegend>
-        <FieldGroup>
+        <FieldGroup className="gap-4">
           <Field>
             <FieldLabel htmlFor={titleId}>Title</FieldLabel>
             <Input
@@ -152,7 +152,7 @@ export function SettingsForm({
       {/* Sharing Section */}
       <FieldSet>
         <FieldLegend variant={isMobile ? "label" : undefined}>Sharing</FieldLegend>
-        <FieldGroup>
+        <FieldGroup className="gap-2">
           <Field>
             <FieldLabel htmlFor={shortLinkId}>Short Link</FieldLabel>
             <div className="flex gap-2">
@@ -174,9 +174,9 @@ export function SettingsForm({
           {userPermissions.isOwner && !isArchived && (
             <Field>
               {!isCustomCodeEditing ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <FieldDescription>
-                    Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
+                    Custom Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
                   </FieldDescription>
                   <Button
                     variant="ghost"
@@ -185,9 +185,9 @@ export function SettingsForm({
                       setCustomCode(shortCode || '');
                       setIsCustomCodeEditing(true);
                     }}
-                    className="h-7 px-2 text-xs"
+                    className="h-7"
                   >
-                    <Pencil className="h-3 w-3 mr-1" />
+                    <Pencil className="h-3 w-3" />
                   </Button>
                 </div>
               ) : (
@@ -261,9 +261,9 @@ export function SettingsForm({
 
           {/* Analytics Section */}
           {analytics && userPermissions.isOwner && (
-            <Field>
+            <Field className="pt-2">
               <FieldLabel>Link Analytics</FieldLabel>
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <div>
                   <p className="text-sm"><span className="text-muted-foreground">Total clicks:</span> {analytics.totalClicks}</p>
                 </div>
@@ -306,7 +306,7 @@ export function SettingsForm({
       {/* Privacy Section */}
       <FieldSet>
         <FieldLegend variant={isMobile ? "label" : undefined}>Privacy</FieldLegend>
-        <FieldGroup>
+        <FieldGroup className="gap-4">
           <Field orientation="horizontal">
             <FieldContent>
               <FieldLabel htmlFor={publicToggleId}>Public Wishlist</FieldLabel>
@@ -340,7 +340,7 @@ export function SettingsForm({
       <FieldSet>
         <FieldLegend variant={isMobile ? "label" : undefined} className="text-destructive">Danger Zone</FieldLegend>
         <FieldGroup>
-          <Field>
+          <Field orientation="responsive">
             <FieldDescription>Once you delete a wishlist, there is no going back. Please be certain.</FieldDescription>
             <Button 
               variant="destructive" 

@@ -7,8 +7,9 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { DrawerClose } from "@/app/components/ui/drawer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
-import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/app/components/ui/field";
+import { Field, FieldGroup, FieldSet, FieldLegend, FieldLabel, FieldDescription } from "@/app/components/ui/field";
 import { ResponsiveDialog } from "@/app/components/ResponsiveDialog";
+import { DeleteItemDialog } from "@/app/components/DeleteItemDialog";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES } from "@/app/lib/currencies";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ export function EditItemDialog({
   onItemDeleted,
 }: EditItemDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [showMoreDetails, setShowMoreDetails] = useState(true);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +68,9 @@ export function EditItemDialog({
           nameInputRef.current?.focus();
         }, 100);
       }
+    } else if (!open) {
+      // Close delete confirmation when edit dialog closes
+      setShowDeleteConfirm(false);
     }
   }, [open, item, listCurrency, isDesktop]);
 
@@ -117,12 +122,13 @@ export function EditItemDialog({
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this item?")) {
-      return;
-    }
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
 
+  const handleDeleteConfirm = async () => {
     setIsLoading(true);
+    setShowDeleteConfirm(false);
 
     try {
       const response = await fetch(`/api/wishlists/${wishlistId}/items/${item.id}`, {
@@ -149,30 +155,49 @@ export function EditItemDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Edit Item"
-      footer={!isDesktop ? (
-        <>
-          <Button 
-            type="submit"
-            size="lg"
-            form="edit-item-form"
-            disabled={isLoading}
-            className="w-full"
-          >
-            Save Changes
-          </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" size="lg"className="w-full" disabled={isLoading}>
+      footer={
+        isDesktop ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
-          </DrawerClose>
-        </>
-      ) : undefined}
+            <Button 
+              type="submit"
+              form="edit-item-form"
+              disabled={isLoading}
+            >
+              Save Changes
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button 
+              type="submit"
+              size="lg"
+              form="edit-item-form"
+              disabled={isLoading}
+              className="w-full"
+            >
+              Save Changes
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" size="lg" className="w-full" disabled={isLoading}>
+                Cancel
+              </Button>
+            </DrawerClose>
+          </>
+        )
+      }
     >
-      <form id="edit-item-form" onSubmit={handleSubmit} className="space-y-4">
-        {/* Required fields */}
-        <div className="grid gap-2">
-          <div className="grid gap-1">
-            <Label htmlFor="name">Title *</Label>
+      <form id="edit-item-form" onSubmit={handleSubmit}>
+        <FieldGroup className="py-2 space-y-0 gap-4">
+          <Field>
+            <FieldLabel htmlFor="name">Title *</FieldLabel>
             <Input 
               id="name"
               ref={nameInputRef}
@@ -182,9 +207,10 @@ export function EditItemDialog({
               autoComplete="off"
               required
             />
-          </div>
-          <div className="grid gap-1">
-            <Label htmlFor="url">URL</Label>
+          </Field>
+          
+          <Field>
+            <FieldLabel htmlFor="url">URL</FieldLabel>
             <Input 
               id="url"
               type="url"
@@ -193,9 +219,10 @@ export function EditItemDialog({
               placeholder="https://example.com/item"
               autoComplete="off"
             />
-          </div>
-          <div className="grid gap-1">
-            <Label htmlFor="price">Price</Label>
+          </Field>
+          
+          <Field>
+            <FieldLabel htmlFor="price">Price</FieldLabel>
             <div className="flex items-center gap-2">
               <Input 
                 id="price"
@@ -213,7 +240,7 @@ export function EditItemDialog({
                 onValueChange={(value) => setFormData({ ...formData, currency: value })}
               >
                 <SelectTrigger 
-                  className="h-9 min-h-9 max-h-9 py-1 text-base md:text-sm leading-none w-32"
+                  className="h-9 min-h-9 max-h-9 py-1 text-base md:text-sm leading-none w-1/2"
                   style={{ height: '36px', paddingTop: '4px', paddingBottom: '4px' }}
                 >
                   <SelectValue placeholder="Select currency" />
@@ -227,82 +254,84 @@ export function EditItemDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </div>
+          </Field>
 
-        {/* Optional fields in Collapsible */}
-        <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
-          <CollapsibleTrigger asChild>
-            <Button type="button" variant="ghost" className="w-full justify-between">
-              <span>More details</span>
-              <span><ChevronsUpDown /></span>
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 pt-2">
-            <div className="grid gap-1">
-              <Label htmlFor="description">Description</Label>
-              <Textarea 
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Add a description"
-                rows={3}
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label htmlFor="imageUrl">Image URL</Label>
-              <Input 
-                id="imageUrl"
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                autoComplete="off"
-              />
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          {/* Optional fields in Collapsible */}
+          <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="ghost" className="w-full justify-between">
+                <span>More details</span>
+                <span><ChevronsUpDown /></span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <FieldGroup className="pt-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="description">Description</FieldLabel>
+                  <Textarea 
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Add a description"
+                    rows={3}
+                  />
+                </Field>
+                
+                <Field>
+                  <FieldLabel htmlFor="imageUrl">Image URL</FieldLabel>
+                  <Input 
+                    id="imageUrl"
+                    type="url"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
+                    autoComplete="off"
+                  />
+                </Field>
+              </FieldGroup>
+            </CollapsibleContent>
+          </Collapsible>
 
-        {/* Desktop only - Action buttons (mobile has sticky footer) */}
-        {isDesktop ? (
-          <div className="flex justify-between pt-2">
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isLoading}
-            >
-              Delete
-            </Button>
-            <div className="space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                Save Changes
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="pt-2">
-            <Button
-              type="button"
-              size="lg"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isLoading}
-              className="w-full"
-            >
-              Delete
-            </Button>
-          </div>
-        )}
+          {/* Danger Zone */}
+          <FieldSet>
+            <FieldLegend variant="label">Delete</FieldLegend>
+            <FieldGroup>
+              <Field orientation="responsive">
+                <FieldDescription>Once you delete this item, this cannot be undone.</FieldDescription>
+                {isDesktop ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDeleteClick}
+                    disabled={isLoading}
+                  >
+                    Delete Item
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="destructive"
+                    onClick={handleDeleteClick}
+                    disabled={isLoading}
+                  >
+                    Delete Item
+                  </Button>
+                )}
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+        </FieldGroup>
       </form>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteItemDialog
+        item={item}
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        onConfirm={handleDeleteConfirm}
+        isLoading={isLoading}
+      />
     </ResponsiveDialog>
   );
 } 
