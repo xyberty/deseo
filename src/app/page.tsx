@@ -194,19 +194,19 @@ export default function HomePage() {
             {hasCreatedWishlists && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {createdWishlists.map(wishlist => (
-                  <Card key={wishlist._id} className="overflow-hidden">
-                    <CardHeader className="p-4 pb-2">
+                  <Card key={wishlist._id} className="overflow-hidden gap-4 py-4">
+                    <CardHeader>
                       <CardTitle className="text-lg">{wishlist.title}</CardTitle>
                       {wishlist.description && (
                         <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
                       )}
                     </CardHeader>
-                    <CardContent className="p-4 pt-2">
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <CardContent className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <List className="h-4 w-4" />
                         <span>{wishlist.items.length} items</span>
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2">
                         {wishlist.isPublic && (
                           <Badge variant="outline">Public</Badge>
                         )}
@@ -215,13 +215,13 @@ export default function HomePage() {
                         )}
                       </div>
                     </CardContent>
-                    <CardFooter className="p-4 pt-0 border-t flex justify-between">
-                      <div className="text-xs text-gray-500">
+                    <CardFooter className="border-t [.border-t]:pt-4 flex justify-between">
+                      <div className="text-xs text-muted-foreground">
                         <Clock className="h-3 w-3 inline-block mr-1" />
                         Created {new Date(wishlist.createdAt).toLocaleDateString()}
                       </div>
                       <Link href={`/wishlist/${wishlist._id}`}>
-                        <Button size="sm">View</Button>
+                        <Button>View</Button>
                       </Link>
                     </CardFooter>
                   </Card>
