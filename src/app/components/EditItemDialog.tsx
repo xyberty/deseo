@@ -92,8 +92,8 @@ export function EditItemDialog({
           description: formData.description || undefined,
           price: formData.price ? parseFloat(formData.price) : undefined,
           currency: itemCurrency,
-          url: formData.url || undefined,
-          imageUrl: formData.imageUrl || undefined,
+          url: formData.url.trim() || "",
+          imageUrl: formData.imageUrl.trim() || "",
         }),
       });
 

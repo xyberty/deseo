@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
 import Link from 'next/link';
+import Image from 'next/image';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
 import { Button } from '@/app/components/ui/button';
@@ -14,6 +15,7 @@ import { ResponsiveDialog } from '@/app/components/ResponsiveDialog';
 import { DrawerClose } from '@/app/components/ui/drawer';
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { getBaseUrl } from './lib/constants';
+import { getFirstItemImage } from './lib/utils';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -193,8 +195,21 @@ export default function HomePage() {
             {/* Active Wishlists */}
             {hasCreatedWishlists && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {createdWishlists.map(wishlist => (
+                {createdWishlists.map(wishlist => {
+                  const firstItemImage = getFirstItemImage(wishlist);
+                  return (
                   <Card key={wishlist._id} className="overflow-hidden gap-4 py-4">
+                    {firstItemImage && (
+                      <div className="relative w-full h-48 overflow-hidden">
+                        <Image
+                          src={firstItemImage}
+                          alt={wishlist.title}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    )}
                     <CardHeader>
                       <CardTitle className="text-lg">{wishlist.title}</CardTitle>
                       {wishlist.description && (
@@ -225,7 +240,8 @@ export default function HomePage() {
                       </Link>
                     </CardFooter>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
             
@@ -247,8 +263,21 @@ export default function HomePage() {
                 
                 {showArchived && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {archivedWishlists.map(wishlist => (
+                    {archivedWishlists.map(wishlist => {
+                      const firstItemImage = getFirstItemImage(wishlist);
+                      return (
                       <Card key={wishlist._id} className="overflow-hidden opacity-75">
+                        {firstItemImage && (
+                          <div className="relative w-full h-48 overflow-hidden">
+                            <Image
+                              src={firstItemImage}
+                              alt={wishlist.title}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        )}
                         <CardHeader className="p-4 pb-2">
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-lg">{wishlist.title}</CardTitle>
@@ -274,7 +303,8 @@ export default function HomePage() {
                           </Link>
                         </CardFooter>
                       </Card>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -290,8 +320,21 @@ export default function HomePage() {
               <h2 className="text-xl font-bold">Shared Wishlists</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sharedWishlists.map(wishlist => (
+              {sharedWishlists.map(wishlist => {
+                const firstItemImage = getFirstItemImage(wishlist);
+                return (
                 <Card key={wishlist._id} className="overflow-hidden">
+                  {firstItemImage && (
+                    <div className="relative w-full h-48 overflow-hidden">
+                      <Image
+                        src={firstItemImage}
+                        alt={wishlist.title}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
+                  )}
                   <CardHeader className="p-4 pb-2">
                     <CardTitle className="text-lg">{wishlist.title}</CardTitle>
                     {wishlist.description && (
@@ -314,7 +357,8 @@ export default function HomePage() {
                     </Link>
                   </CardFooter>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
