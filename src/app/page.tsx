@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
 import { Button } from '@/app/components/ui/button';
 import { Gift, PenSquare, List, Clock, ChevronDown, ChevronUp, Archive } from 'lucide-react';
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from '@/app/components/ui/empty';
 import { Badge } from '@/app/components/ui/badge';
 import { useAuth } from '@/app/hooks/useAuth';
 import { MagicLinkForm } from '@/app/components/MagicLinkForm';
@@ -155,20 +156,25 @@ export default function HomePage() {
       />
       <div className="container mx-auto p-3 sm:p-4 lg:p-6">
         {!hasAnyContent && (
-          <div className="text-center p-12 border border-dashed rounded-lg my-8">
-            <h1 className="text-2xl font-bold mb-2">Welcome to Deseo!</h1>
-            <p className="text-gray-500 mb-6">
-              Your dashboard is empty. Start by creating a wishlist or viewing shared wishlists.
-            </p>
-            <div className="flex flex-col gap-4 max-w-md mx-auto">
+          <Empty className="my-8 border-1 border-dashed border-secondary rounded-xl">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <PenSquare className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>Welcome to Deseo!</EmptyTitle>
+              <EmptyDescription>
+                Your dashboard is empty. Start by creating a wishlist or viewing shared wishlists.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
               <Link href="/create" className="w-full">
                 <Button className="w-full">
                   <PenSquare className="h-4 w-4 mr-2" />
                   Create My First Wishlist
                 </Button>
               </Link>
-            </div>
-          </div>
+            </EmptyContent>
+          </Empty>
         )}
         
         {/* My Wishlists Section */}

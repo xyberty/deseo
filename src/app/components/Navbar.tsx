@@ -121,7 +121,7 @@ export function Navbar() {
             </Link>
             
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
+            <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
               {routes.map((route) => (
                 <Link
                   key={route.href}
@@ -151,7 +151,7 @@ export function Navbar() {
                       variant="outline"
                       onClick={handleSignOut}
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
+                      <LogOut className="h-4 w-4" />
                       Sign Out
                     </Button>
                   )}
@@ -159,7 +159,7 @@ export function Navbar() {
               )}
               
               <Link href="/create">
-                <Button variant="outline">
+                <Button variant="default">
                   <Plus className="h-4 w-4" />
                   Create Wishlist
                 </Button>

@@ -57,12 +57,11 @@ export function AddItemDialog({
         imageUrl: "",
       });
       setShowMoreDetails(false);
-    } else if (open && nameInputRef.current) {
-      // Auto-focus on both desktop and mobile
-      // Footer is now outside scrollable area, so no scroll issues
+    } else if (open && isDesktop && nameInputRef.current) {
+      // Auto-focus on desktop
       setTimeout(() => {
         nameInputRef.current?.focus();
-      }, isDesktop ? 100 : 300); // Slightly longer delay on mobile for drawer animation
+      }, 100);
     }
   }, [open, listCurrency, isDesktop]);
 

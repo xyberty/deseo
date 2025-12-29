@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
 import { use } from 'react';
 import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings } from 'lucide-react';
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia, EmptyContent } from '@/app/components/ui/empty';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
@@ -719,13 +720,20 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       {/* Items grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         {wishlist.items.length === 0 ? (
-          <div className="col-span-full text-center p-10 border border-dashed rounded-lg">
-            <p className="text-gray-500">
-              {userPermissions.canEdit 
-                ? "This wishlist is empty. Add your first item!" 
-                : "This wishlist is empty."}
-            </p>
-          </div>
+          <Empty className="col-span-full border-1 border-dashed border-secondary rounded-xl">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Gift className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>This wishlist is empty</EmptyTitle>
+              <EmptyDescription>
+                {userPermissions.canEdit 
+                  ? "Add your first item to get started!" 
+                  : "There are no items in this wishlist yet."}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent />
+          </Empty>
         ) : (
           wishlist.items.map((item) => (
             <Card key={item.id} data-item-id={item.id} className="group relative gap-0 py-0">
@@ -846,7 +854,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                           }}
                           className="h-8"
                         >
-                          <Gift className="h-4 w-4 mr-2" />
+                          <Gift className="h-4 w-4" />
                           Reserve
                         </Button>
                       )
