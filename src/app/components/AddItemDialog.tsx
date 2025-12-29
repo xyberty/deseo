@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { DrawerClose } from "@/app/components/ui/drawer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
+import { Field, FieldGroup, FieldLabel } from "@/app/components/ui/field";
 import { ResponsiveDialog } from "@/app/components/ResponsiveDialog";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES } from "@/app/lib/currencies";
@@ -118,30 +118,39 @@ export function AddItemDialog({
       onOpenChange={onOpenChange}
       title="Add Item"
       trigger={trigger}
-      footer={!isDesktop ? (
-        <>
+      footer={
+        isDesktop ? (
           <Button 
             type="submit"
-            size="lg"
             form="add-item-form"
             disabled={isLoading}
-            className="w-full"
           >
             Save
           </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" className="w-full" disabled={isLoading}>
-              Cancel
+        ) : (
+          <>
+            <Button 
+              type="submit"
+              size="lg"
+              form="add-item-form"
+              disabled={isLoading}
+              className="w-full"
+            >
+              Save
             </Button>
-          </DrawerClose>
-        </>
-      ) : undefined}
+            <DrawerClose asChild>
+              <Button variant="outline" size="lg" className="w-full" disabled={isLoading}>
+                Cancel
+              </Button>
+            </DrawerClose>
+          </>
+        )
+      }
     >
-      <form id="add-item-form" onSubmit={handleSubmit} className="space-y-4">
-        {/* Required fields */}
-        <div className="grid gap-2">
-          <div className="grid gap-1">
-            <Label htmlFor="name">Title *</Label>
+      <form id="add-item-form" onSubmit={handleSubmit}>
+        <FieldGroup className="py-2 space-y-0 gap-4">
+          <Field>
+            <FieldLabel htmlFor="name">Title *</FieldLabel>
             <Input 
               id="name"
               ref={nameInputRef}
@@ -151,9 +160,10 @@ export function AddItemDialog({
               autoComplete="off"
               required
             />
-          </div>
-          <div className="grid gap-1">
-            <Label htmlFor="url">URL</Label>
+          </Field>
+          
+          <Field>
+            <FieldLabel htmlFor="url">URL</FieldLabel>
             <Input 
               id="url"
               type="url"
@@ -162,9 +172,10 @@ export function AddItemDialog({
               placeholder="https://example.com/item"
               autoComplete="off"
             />
-          </div>
-          <div className="grid gap-1">
-            <Label htmlFor="price">Price</Label>
+          </Field>
+          
+          <Field>
+            <FieldLabel htmlFor="price">Price</FieldLabel>
             <div className="flex items-center gap-2">
               <Input 
                 id="price"
@@ -182,7 +193,7 @@ export function AddItemDialog({
                 onValueChange={(value) => setFormData({ ...formData, currency: value })}
               >
                 <SelectTrigger 
-                  className="h-9 min-h-9 max-h-9 py-1 text-base md:text-sm leading-none w-32"
+                  className="h-9 min-h-9 max-h-9 py-1 text-base md:text-sm leading-none w-1/2"
                   style={{ height: '36px', paddingTop: '4px', paddingBottom: '4px' }}
                 >
                   <SelectValue placeholder="Select currency" />
@@ -196,50 +207,44 @@ export function AddItemDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </div>
+          </Field>
 
-        {/* Optional fields in Collapsible */}
-        <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
-          <CollapsibleTrigger asChild>
-            <Button type="button" variant="ghost" className="w-full justify-between">
-              <span>More details</span>
-              <span><ChevronsUpDown /></span>
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 pt-2">
-            <div className="grid gap-1">
-              <Label htmlFor="description">Description</Label>
-              <Textarea 
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Add a description"
-                rows={3}
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label htmlFor="imageUrl">Image URL</Label>
-              <Input 
-                id="imageUrl"
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                autoComplete="off"
-              />
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Desktop only - Save button (mobile has sticky footer) */}
-        {isDesktop && (
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="submit" disabled={isLoading}>
-              Save
-            </Button>
-          </div>
-        )}
+          {/* Optional fields in Collapsible */}
+          <Collapsible open={showMoreDetails} onOpenChange={setShowMoreDetails}>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="ghost" className="w-full justify-between">
+                <span>More details</span>
+                <span><ChevronsUpDown /></span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <FieldGroup className="pt-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="description">Description</FieldLabel>
+                  <Textarea 
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Add a description"
+                    rows={3}
+                  />
+                </Field>
+                
+                <Field>
+                  <FieldLabel htmlFor="imageUrl">Image URL</FieldLabel>
+                  <Input 
+                    id="imageUrl"
+                    type="url"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
+                    autoComplete="off"
+                  />
+                </Field>
+              </FieldGroup>
+            </CollapsibleContent>
+          </Collapsible>
+        </FieldGroup>
       </form>
     </ResponsiveDialog>
   );
