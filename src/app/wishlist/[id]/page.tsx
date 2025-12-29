@@ -898,7 +898,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
               Reserve
             </Button>
             <DrawerClose asChild>
-              <Button variant="outline" className="w-full">Cancel</Button>
+              <Button variant="outline" size="lg" className="w-full">Cancel</Button>
             </DrawerClose>
           </>
         ) : undefined}

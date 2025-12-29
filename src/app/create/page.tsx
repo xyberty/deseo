@@ -90,7 +90,7 @@ export default function CreateWishlist() {
 
           <div className="space-y-2">
             <Label htmlFor="description">
-              Description (optional)
+              Description
             </Label>
             <Input
               id="description"
