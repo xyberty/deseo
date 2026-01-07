@@ -65,37 +65,39 @@ export function ResponsiveDialog({
     };
   }, [isDesktop, open]);
 
+  // Calculate footer height for padding (approximate)
+  const footerHeight = React.useMemo(() => {
+    if (!footer || isDesktop) return 0;
+    // Approximate footer height: padding + buttons + gap
+    return 80; // ~80px for typical footer with 2 buttons
+  }, [footer, isDesktop]);
+
   // Calculate dynamic max height for mobile drawer
   const getMobileMaxHeight = React.useMemo(() => {
     if (isDesktop || !viewportHeight) return maxHeight;
     
     // Reserve space for:
-    // - Top safe area (status bar, notch, etc.) - env(safe-area-inset-top) or ~44px
-    // - Swipe handle area - ~16px (mt-4 = 1rem) + handle height ~8px
+    // - Top margin (swipe handle area) - ~20px
+    // - Swipe handle - ~8px (h-2)
     // - Header - ~50px (title + padding)
-    // - Footer - ~70px (buttons + padding, compact when keyboard is open)
-    const topSafeArea = 44; // Safe area for status bar/notch
-    const swipeHandleArea = 24; // mt-4 (16px) + handle (8px)
+    // - Footer - always reserved, but footer is fixed at bottom of viewport
+    const topMargin = 20;
+    const swipeHandle = 8;
     const headerHeight = 50;
-    const footerHeight = 70; // Compact footer
-    const reservedSpace = topSafeArea + swipeHandleArea + headerHeight + footerHeight;
+    
+    // Footer is always visible but fixed at bottom, so we reserve space for it
+    // but it won't "eat" into content when keyboard is open
+    const reservedSpace = topMargin + swipeHandle + headerHeight + footerHeight;
     
     const availableHeight = viewportHeight - reservedSpace;
     
-    // Use at least 40vh as minimum for very small viewports
-    const minHeight = window.innerHeight * 0.4;
+    // Use at least 200px as minimum for very small viewports
+    const minHeight = 200;
     const calculatedHeight = Math.max(availableHeight, minHeight);
     
-    // Don't exceed 90vh
-    const maxAllowedHeight = window.innerHeight * 0.9;
-    return `${Math.min(calculatedHeight, maxAllowedHeight)}px`;
-  }, [isDesktop, viewportHeight, maxHeight]);
-
-  // Check if keyboard is likely open (viewport significantly smaller than window)
-  const isKeyboardOpen = React.useMemo(() => {
-    if (isDesktop || !viewportHeight) return false;
-    return viewportHeight < window.innerHeight * 0.75;
-  }, [isDesktop, viewportHeight]);
+    // Don't exceed viewport height
+    return `${Math.min(calculatedHeight, viewportHeight)}px`;
+  }, [isDesktop, viewportHeight, maxHeight, footerHeight]);
 
   if (isDesktop) {
     return (
@@ -125,24 +127,35 @@ export function ResponsiveDialog({
         style={{ maxHeight: getMobileMaxHeight }} 
         className="flex flex-col"
       >
-        <div className="mx-auto w-full max-w-sm flex flex-col flex-1 min-h-0">
+        <div className="mx-auto w-full max-w-sm flex flex-col flex-1 min-h-0 relative">
           <DrawerHeader className="text-left pb-2 px-4 pt-2 flex-shrink-0">
             <DrawerTitle className="text-base">{title}</DrawerTitle>
           </DrawerHeader>
-          {/* Scrollable content area */}
-          <div className="overflow-y-auto px-4 pb-4 flex-1 min-h-0">
+          {/* Scrollable content area with padding for footer */}
+          <div 
+            className="overflow-y-auto px-4 flex-1 min-h-0"
+            style={{ 
+              paddingBottom: footer ? `${footerHeight}px` : '1rem'
+            }}
+          >
             {children}
           </div>
-          {/* Footer outside scrollable area, but compact when keyboard is open */}
-          {footer && (
-            <DrawerFooter className={cn(
-              "pt-2 pb-safe bg-background flex-shrink-0 border-t",
-              isKeyboardOpen && "pt-2 pb-2"
-            )}>
-              {footer}
-            </DrawerFooter>
-          )}
         </div>
+        {/* Floating footer - fixed at bottom of viewport, outside scrollable area */}
+        {footer && (
+          <DrawerFooter 
+            className={cn(
+              "fixed left-1/2 -translate-x-1/2 w-full max-w-sm pt-4 pb-safe bg-background border-t flex-shrink-0 z-[60]",
+              "shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
+            )}
+            style={{
+              paddingBottom: `max(1rem, env(safe-area-inset-bottom, 0px) + 1rem)`,
+              bottom: 0,
+            }}
+          >
+            {footer}
+          </DrawerFooter>
+        )}
       </DrawerContent>
     </Drawer>
   );
