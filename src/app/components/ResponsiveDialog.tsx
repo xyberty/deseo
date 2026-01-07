@@ -64,26 +64,6 @@ export function ResponsiveDialog({
     };
   }, [isDesktop, open]);
 
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={cn("sm:max-w-[425px] flex flex-col", contentClassName)} style={{ maxHeight }}>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
-            {children}
-          </div>
-          {footer && (
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
-              {footer}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   // When keyboard is open, use full viewport height to maximize content space
   // This allows drawer to show maximum content and scroll to reveal focused field
   const drawerStyle = React.useMemo(() => {
