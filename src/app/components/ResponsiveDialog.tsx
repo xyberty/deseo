@@ -28,6 +28,74 @@ export function ResponsiveDialog({
   maxHeight = '90vh',
 }: ResponsiveDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [viewportHeight, setViewportHeight] = React.useState<number | null>(null);
+  const drawerContentRef = React.useRef<HTMLDivElement>(null);
+
+  // Track visual viewport changes for keyboard handling on mobile
+  React.useEffect(() => {
+    if (isDesktop || typeof window === 'undefined') return;
+
+    const updateViewportHeight = () => {
+      if (window.visualViewport) {
+        setViewportHeight(window.visualViewport.height);
+      } else {
+        setViewportHeight(window.innerHeight);
+      }
+    };
+
+    // Initial height
+    updateViewportHeight();
+
+    // Listen to visual viewport changes (keyboard open/close)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateViewportHeight);
+      window.visualViewport.addEventListener('scroll', updateViewportHeight);
+    } else {
+      // Fallback for browsers without visual viewport API
+      window.addEventListener('resize', updateViewportHeight);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', updateViewportHeight);
+        window.visualViewport.removeEventListener('scroll', updateViewportHeight);
+      } else {
+        window.removeEventListener('resize', updateViewportHeight);
+      }
+    };
+  }, [isDesktop, open]);
+
+  // Calculate dynamic max height for mobile drawer
+  const getMobileMaxHeight = React.useMemo(() => {
+    if (isDesktop || !viewportHeight) return maxHeight;
+    
+    // Reserve space for:
+    // - Top safe area (status bar, notch, etc.) - env(safe-area-inset-top) or ~44px
+    // - Swipe handle area - ~16px (mt-4 = 1rem) + handle height ~8px
+    // - Header - ~50px (title + padding)
+    // - Footer - ~70px (buttons + padding, compact when keyboard is open)
+    const topSafeArea = 44; // Safe area for status bar/notch
+    const swipeHandleArea = 24; // mt-4 (16px) + handle (8px)
+    const headerHeight = 50;
+    const footerHeight = 70; // Compact footer
+    const reservedSpace = topSafeArea + swipeHandleArea + headerHeight + footerHeight;
+    
+    const availableHeight = viewportHeight - reservedSpace;
+    
+    // Use at least 40vh as minimum for very small viewports
+    const minHeight = window.innerHeight * 0.4;
+    const calculatedHeight = Math.max(availableHeight, minHeight);
+    
+    // Don't exceed 90vh
+    const maxAllowedHeight = window.innerHeight * 0.9;
+    return `${Math.min(calculatedHeight, maxAllowedHeight)}px`;
+  }, [isDesktop, viewportHeight, maxHeight]);
+
+  // Check if keyboard is likely open (viewport significantly smaller than window)
+  const isKeyboardOpen = React.useMemo(() => {
+    if (isDesktop || !viewportHeight) return false;
+    return viewportHeight < window.innerHeight * 0.75;
+  }, [isDesktop, viewportHeight]);
 
   if (isDesktop) {
     return (
@@ -52,18 +120,25 @@ export function ResponsiveDialog({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
-      <DrawerContent style={{ maxHeight }} className="flex flex-col">
+      <DrawerContent 
+        ref={drawerContentRef}
+        style={{ maxHeight: getMobileMaxHeight }} 
+        className="flex flex-col"
+      >
         <div className="mx-auto w-full max-w-sm flex flex-col flex-1 min-h-0">
           <DrawerHeader className="text-left pb-2 px-4 pt-2 flex-shrink-0">
             <DrawerTitle className="text-base">{title}</DrawerTitle>
           </DrawerHeader>
-          {/* Scrollable content area - footer is excluded from this */}
+          {/* Scrollable content area */}
           <div className="overflow-y-auto px-4 pb-4 flex-1 min-h-0">
             {children}
           </div>
-          {/* Footer is outside scrollable area and always visible */}
+          {/* Footer outside scrollable area, but compact when keyboard is open */}
           {footer && (
-            <DrawerFooter className="pt-4 pb-safe bg-background flex-shrink-0">
+            <DrawerFooter className={cn(
+              "pt-2 pb-safe bg-background flex-shrink-0 border-t",
+              isKeyboardOpen && "pt-2 pb-2"
+            )}>
               {footer}
             </DrawerFooter>
           )}
