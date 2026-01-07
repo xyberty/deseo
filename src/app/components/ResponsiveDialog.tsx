@@ -114,6 +114,26 @@ export function ResponsiveDialog({
     return () => clearTimeout(timer);
   }, [isKeyboardOpen, isDesktop]);
 
+  if (isDesktop) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className={cn("sm:max-w-[425px] flex flex-col", contentClassName)} style={{ maxHeight }}>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
+            {children}
+          </div>
+          {footer && (
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+              {footer}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
