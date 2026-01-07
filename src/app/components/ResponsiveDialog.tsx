@@ -28,76 +28,41 @@ export function ResponsiveDialog({
   maxHeight = '90vh',
 }: ResponsiveDialogProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [isKeyboardOpen, setIsKeyboardOpen] = React.useState(false);
   const [viewportHeight, setViewportHeight] = React.useState<number | null>(null);
-  const drawerContentRef = React.useRef<HTMLDivElement>(null);
 
-  // Track visual viewport changes for keyboard handling on mobile
+  // Track visual viewport changes to detect keyboard
   React.useEffect(() => {
     if (isDesktop || typeof window === 'undefined') return;
 
-    const updateViewportHeight = () => {
+    const updateViewport = () => {
       if (window.visualViewport) {
-        setViewportHeight(window.visualViewport.height);
+        const vh = window.visualViewport.height;
+        setViewportHeight(vh);
+        // Keyboard is open if viewport is significantly smaller than window
+        setIsKeyboardOpen(vh < window.innerHeight * 0.75);
       } else {
         setViewportHeight(window.innerHeight);
+        setIsKeyboardOpen(false);
       }
     };
 
-    // Initial height
-    updateViewportHeight();
+    updateViewport();
 
-    // Listen to visual viewport changes (keyboard open/close)
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateViewportHeight);
-      window.visualViewport.addEventListener('scroll', updateViewportHeight);
+      window.visualViewport.addEventListener('resize', updateViewport);
     } else {
-      // Fallback for browsers without visual viewport API
-      window.addEventListener('resize', updateViewportHeight);
+      window.addEventListener('resize', updateViewport);
     }
 
     return () => {
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', updateViewportHeight);
-        window.visualViewport.removeEventListener('scroll', updateViewportHeight);
+        window.visualViewport.removeEventListener('resize', updateViewport);
       } else {
-        window.removeEventListener('resize', updateViewportHeight);
+        window.removeEventListener('resize', updateViewport);
       }
     };
   }, [isDesktop, open]);
-
-  // Calculate footer height for padding (approximate)
-  const footerHeight = React.useMemo(() => {
-    if (!footer || isDesktop) return 0;
-    // Approximate footer height: padding + buttons + gap
-    return 80; // ~80px for typical footer with 2 buttons
-  }, [footer, isDesktop]);
-
-  // Calculate dynamic max height for mobile drawer
-  const getMobileMaxHeight = React.useMemo(() => {
-    if (isDesktop || !viewportHeight) return maxHeight;
-    
-    // Reserve space for:
-    // - Top margin (swipe handle area) - ~20px
-    // - Swipe handle - ~8px (h-2)
-    // - Header - ~50px (title + padding)
-    // - Footer - always reserved, but footer is fixed at bottom of viewport
-    const topMargin = 20;
-    const swipeHandle = 8;
-    const headerHeight = 50;
-    
-    // Footer is always visible but fixed at bottom, so we reserve space for it
-    // but it won't "eat" into content when keyboard is open
-    const reservedSpace = topMargin + swipeHandle + headerHeight + footerHeight;
-    
-    const availableHeight = viewportHeight - reservedSpace;
-    
-    // Use at least 200px as minimum for very small viewports
-    const minHeight = 200;
-    const calculatedHeight = Math.max(availableHeight, minHeight);
-    
-    // Don't exceed viewport height
-    return `${Math.min(calculatedHeight, viewportHeight)}px`;
-  }, [isDesktop, viewportHeight, maxHeight, footerHeight]);
 
   if (isDesktop) {
     return (
@@ -119,43 +84,78 @@ export function ResponsiveDialog({
     );
   }
 
+  // When keyboard is open, use full viewport height to maximize content space
+  // This allows drawer to show maximum content and scroll to reveal focused field
+  const drawerStyle = React.useMemo(() => {
+    if (isKeyboardOpen && viewportHeight) {
+      // Use height (not maxHeight) to force drawer to take full viewport
+      return { height: `${viewportHeight}px` };
+    }
+    return { maxHeight };
+  }, [isKeyboardOpen, viewportHeight, maxHeight]);
+
+  // Auto-scroll focused input into view when keyboard opens
+  React.useEffect(() => {
+    if (!isKeyboardOpen || isDesktop) return;
+
+    // Small delay to ensure keyboard animation completes
+    const timer = setTimeout(() => {
+      const activeElement = document.activeElement;
+      if (activeElement && (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement)) {
+        // Find scrollable container
+        const scrollContainer = activeElement.closest('[class*="overflow-y-auto"]');
+        if (scrollContainer) {
+          const rect = activeElement.getBoundingClientRect();
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const scrollTop = scrollContainer.scrollTop;
+          
+          // Calculate position relative to container
+          const elementTop = rect.top - containerRect.top + scrollTop;
+          const elementHeight = rect.height;
+          const containerHeight = containerRect.height;
+          
+          // Scroll to center the element in container
+          const targetScroll = elementTop - (containerHeight / 2) + (elementHeight / 2);
+          scrollContainer.scrollTo({
+            top: targetScroll,
+            behavior: 'smooth'
+          });
+        } else {
+          // Fallback to standard scrollIntoView
+          activeElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [isKeyboardOpen, isDesktop]);
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent 
-        ref={drawerContentRef}
-        style={{ maxHeight: getMobileMaxHeight }} 
+        style={drawerStyle} 
         className="flex flex-col"
       >
-        <div className="mx-auto w-full max-w-sm flex flex-col flex-1 min-h-0 relative">
+        <div className="mx-auto w-full max-w-sm flex flex-col flex-1 min-h-0">
           <DrawerHeader className="text-left pb-2 px-4 pt-2 flex-shrink-0">
             <DrawerTitle className="text-base">{title}</DrawerTitle>
           </DrawerHeader>
-          {/* Scrollable content area with padding for footer */}
-          <div 
-            className="overflow-y-auto px-4 flex-1 min-h-0"
-            style={{ 
-              paddingBottom: footer ? `${footerHeight}px` : '1rem'
-            }}
-          >
+          {/* Scrollable content area - takes full available space when keyboard is open */}
+          <div className="overflow-y-auto px-4 pb-4 flex-1 min-h-0">
             {children}
           </div>
+          {/* Footer is hidden when keyboard is open to maximize content space */}
+          {footer && !isKeyboardOpen && (
+            <DrawerFooter className="pt-4 pb-safe bg-background flex-shrink-0">
+              {footer}
+            </DrawerFooter>
+          )}
         </div>
-        {/* Floating footer - fixed at bottom of viewport, outside scrollable area */}
-        {footer && (
-          <DrawerFooter 
-            className={cn(
-              "fixed left-1/2 -translate-x-1/2 w-full max-w-sm pt-4 pb-safe bg-background border-t flex-shrink-0 z-[60]",
-              "shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
-            )}
-            style={{
-              paddingBottom: `max(1rem, env(safe-area-inset-bottom, 0px) + 1rem)`,
-              bottom: 0,
-            }}
-          >
-            {footer}
-          </DrawerFooter>
-        )}
       </DrawerContent>
     </Drawer>
   );
