@@ -64,15 +64,58 @@ export function ResponsiveDialog({
     };
   }, [isDesktop, open]);
 
+  // Track visual viewport offset for Android positioning
+  const [viewportOffsetTop, setViewportOffsetTop] = React.useState(0);
+
+  // Track visual viewport offset (for Android positioning)
+  React.useEffect(() => {
+    if (isDesktop || typeof window === 'undefined' || !window.visualViewport) return;
+
+    const updateOffset = () => {
+      if (window.visualViewport) {
+        setViewportOffsetTop(window.visualViewport.offsetTop);
+      }
+    };
+
+    updateOffset();
+    window.visualViewport.addEventListener('scroll', updateOffset);
+    window.visualViewport.addEventListener('resize', updateOffset);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('scroll', updateOffset);
+        window.visualViewport.removeEventListener('resize', updateOffset);
+      }
+    };
+  }, [isDesktop, open]);
+
   // When keyboard is open, use full viewport height to maximize content space
   // This allows drawer to show maximum content and scroll to reveal focused field
+  // When keyboard closes, remove height constraint to allow drawer to return to normal size
   const drawerStyle = React.useMemo(() => {
     if (isKeyboardOpen && viewportHeight) {
       // Use height (not maxHeight) to force drawer to take full viewport
-      return { height: `${viewportHeight}px` };
+      const baseStyle: React.CSSProperties = { 
+        height: `${viewportHeight}px`, 
+        maxHeight: 'none'
+      };
+      
+      // On Android, use transform to compensate for viewport offset
+      // visualViewport.offsetTop indicates how much the viewport has shifted down
+      // We need to shift drawer up by the same amount to keep it in place
+      if (viewportOffsetTop > 0) {
+        baseStyle.transform = `translateY(-${viewportOffsetTop}px)`;
+      }
+      
+      return baseStyle;
     }
-    return { maxHeight };
-  }, [isKeyboardOpen, viewportHeight, maxHeight]);
+    // When keyboard is closed, use maxHeight with safe-area consideration for iOS
+    // Use calc to account for safe-area-inset-top to prevent content going under address bar
+    return { 
+      maxHeight: `calc(${maxHeight} - env(safe-area-inset-top, 0px))`, 
+      height: 'auto'
+    };
+  }, [isKeyboardOpen, viewportHeight, maxHeight, viewportOffsetTop]);
 
   // Auto-scroll focused input into view when keyboard opens
   React.useEffect(() => {

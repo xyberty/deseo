@@ -211,7 +211,7 @@ export default function HomePage() {
                           src={firstItemImage}
                           alt={wishlist.title}
                           fill
-                          className="object-cover"
+                          className="p-4 object-cover"
                           unoptimized
                         />
                       </div>
@@ -279,7 +279,7 @@ export default function HomePage() {
                               src={firstItemImage}
                               alt={wishlist.title}
                               fill
-                              className="object-cover"
+                              className="p-4 object-cover"
                               unoptimized
                             />
                           </div>
@@ -336,7 +336,7 @@ export default function HomePage() {
                         src={firstItemImage}
                         alt={wishlist.title}
                         fill
-                        className="object-cover"
+                        className="p-4 object-cover"
                         unoptimized
                       />
                     </div>
