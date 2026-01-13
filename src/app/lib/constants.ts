@@ -1,5 +1,5 @@
 export const APP_NAME = "Deseo";
-export const APP_VERSION = "0.8.0-beta.5-5";
+export const APP_VERSION = "0.8.0";
 export const GITHUB_URL = "https://github.com/xyberty/deseo";
 export const BASE_URL = "https://example.com";
 
