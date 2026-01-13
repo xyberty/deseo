@@ -8,9 +8,12 @@ import { Button } from '@/app/components/ui/button';
 import { Plus, LogOut, Menu, X, Home } from 'lucide-react';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { MagicLinkForm } from './MagicLinkForm';
+import { ResponsiveDialog } from './ResponsiveDialog';
+import { DrawerClose } from './ui/drawer';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { toast } from 'sonner';
+import { APP_NAME } from '@/app/lib/constants';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -18,6 +21,9 @@ export function Navbar() {
   const { isAuthenticated, isLoading, refresh } = useAuth();
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const routes = [
     { href: '/', label: 'Home', icon: Home },
@@ -51,9 +57,43 @@ export function Navbar() {
     }
   };
 
-  const handleRestoreSuccess = () => {
-    setRestoreDialogOpen(false);
-    refresh();
+  const handleSendMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingMagicLink(true);
+
+    try {
+      const response = await fetch('/api/auth/send-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: magicLinkEmail }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send magic link');
+      }
+
+      toast.success('Magic link sent!', {
+        description: 'Please check your email for the sign-in link.',
+      });
+
+      setRestoreDialogOpen(false);
+      setMagicLinkEmail('');
+      refresh();
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'Something went wrong',
+      });
+    } finally {
+      setIsSendingMagicLink(false);
+    }
+  };
+
+  const handleRestoreDialogClose = (open: boolean) => {
+    setRestoreDialogOpen(open);
+    if (!open) {
+      setMagicLinkEmail('');
+    }
   };
 
   const handleRestoreClick = () => {
@@ -63,8 +103,8 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="border-b bg-background sticky top-0 z-40">
-        <div className="container mx-auto px-4">
+      <nav className="w-full border-b bg-background sticky top-0 z-40">
+        <div className="container px-4">
           <div className="flex items-center justify-between h-16">
             <Link 
               href="/" 
@@ -77,11 +117,11 @@ export function Navbar() {
                 height={32}
                 className="h-6 w-6 sm:h-8 sm:w-8"
               />
-              <span>Deseo</span>
+              <span>{APP_NAME}</span>
             </Link>
             
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
+            <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
               {routes.map((route) => (
                 <Link
                   key={route.href}
@@ -111,7 +151,7 @@ export function Navbar() {
                       variant="outline"
                       onClick={handleSignOut}
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
+                      <LogOut className="h-4 w-4" />
                       Sign Out
                     </Button>
                   )}
@@ -119,8 +159,8 @@ export function Navbar() {
               )}
               
               <Link href="/create">
-                <Button variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button variant="default">
+                  <Plus className="h-4 w-4" />
                   Create Wishlist
                 </Button>
               </Link>
@@ -198,17 +238,52 @@ export function Navbar() {
         )}
       </nav>
 
-      <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Restore My Wishlists</DialogTitle>
-            <DialogDescription className="text-sm">
-              Enter your email to receive a magic link and access your wishlists from this device.
-            </DialogDescription>
-          </DialogHeader>
-          <MagicLinkForm onSuccess={handleRestoreSuccess} />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveDialog
+        open={restoreDialogOpen}
+        onOpenChange={handleRestoreDialogClose}
+        title="Restore My Wishlists"
+        footer={!isDesktop ? (
+          <>
+            <Button 
+              type="submit"
+              size="lg"
+              form="magic-link-form"
+              disabled={isSendingMagicLink}
+              className="w-full"
+            >
+              {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full">Cancel</Button>
+            </DrawerClose>
+          </>
+        ) : undefined}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Enter your email to receive a magic link and access your wishlists from this device.
+          </p>
+          <MagicLinkForm
+            email={magicLinkEmail}
+            setEmail={setMagicLinkEmail}
+            isLoading={isSendingMagicLink}
+            isMobile={!isDesktop}
+            autoFocus={isDesktop}
+            onSubmit={handleSendMagicLink}
+          />
+          {isDesktop && (
+            <div className="flex justify-end gap-2 pt-2">
+              <Button 
+                type="submit"
+                form="magic-link-form"
+                disabled={isSendingMagicLink}
+              >
+                {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+              </Button>
+            </div>
+          )}
+        </div>
+      </ResponsiveDialog>
     </>
   );
 } 

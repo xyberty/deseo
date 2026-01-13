@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { signToken } from '@/app/lib/jwt';
 import { sendMagicLink } from '@/app/lib/email';
 import { rateLimit } from '@/app/lib/rate-limit';
-import { getServerBaseUrl } from '@/app/lib/constants';
 
 // Force Node.js runtime (required for jsonwebtoken)
 export const runtime = 'nodejs';
@@ -13,7 +12,7 @@ const limiter = rateLimit({
   uniqueTokenPerInterval: 500,
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
     await limiter.check(5, "send-magic-link");
@@ -34,7 +33,9 @@ export async function POST(request: Request) {
     }
 
     const token = signToken({ email });
-    const baseUrl = getServerBaseUrl();
+    // Use the request URL to get the current domain (works for staging and production)
+    const requestUrl = new URL(request.url);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${requestUrl.protocol}//${requestUrl.host}`;
     const magicLink = `${baseUrl}/api/auth/verify-magic-link?token=${token}`;
 
     await sendMagicLink(email, magicLink);

@@ -1,23 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import * as React from 'react';
 import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Textarea } from '@/app/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem, Reservation } from '@/app/types/wishlist';
 import { use } from 'react';
 import { Pencil, Trash2, ArrowUpRight, Plus, Gift, Lock, Globe, Share2, Settings } from 'lucide-react';
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia, EmptyContent } from '@/app/components/ui/empty';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import Link from 'next/link';
 import Image from 'next/image';
-import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
-import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
+import { DrawerClose } from "@/app/components/ui/drawer";
+import { useMediaQuery } from "@/app/hooks/use-media-query";
+import { DEFAULT_CURRENCY, formatCurrency } from '@/app/lib/currencies';
 import { getBaseUrl } from '@/app/lib/constants';
+import { ResponsiveDialog } from '@/app/components/ResponsiveDialog';
+import { SettingsForm } from '@/app/components/SettingsForm';
+import { ReserveItemForm } from '@/app/components/ReserveItemForm';
+import { AddItemDialog } from '@/app/components/AddItemDialog';
+import { EditItemDialog } from '@/app/components/EditItemDialog';
+import { DeleteItemDialog } from '@/app/components/DeleteItemDialog';
 
 // Define user permissions interface
 interface UserPermissions {
@@ -31,12 +35,6 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [isLoading, setIsLoading] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemDescription, setNewItemDescription] = useState('');
-  const [newItemPrice, setNewItemPrice] = useState('');
-  const [newItemCurrency, setNewItemCurrency] = useState<string>(DEFAULT_CURRENCY);
-  const [newItemUrl, setNewItemUrl] = useState('');
-  const [newItemImageUrl, setNewItemImageUrl] = useState('');
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -51,6 +49,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   const [userPermissions, setUserPermissions] = useState<UserPermissions>({ canEdit: false, isOwner: false });
   const [isPublic, setIsPublic] = useState(false);
   const [allowEdits, setAllowEdits] = useState(false);
+  const [wishlistTitle, setWishlistTitle] = useState('');
+  const [wishlistDescription, setWishlistDescription] = useState('');
   const [shareUrl, setShareUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
   const [shortCode, setShortCode] = useState('');
@@ -63,6 +63,14 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   } | null>(null);
   const [listCurrency, setListCurrency] = useState(DEFAULT_CURRENCY);
   const [isArchived, setIsArchived] = useState(false);
+  const [addItemOpen, setAddItemOpen] = useState(false);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
+  const [isDeletingWishlist, setIsDeletingWishlist] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  const handleAddItemDialogChange = (open: boolean) => {
+    setAddItemOpen(open);
+  };
   
   // Add keyboard event listener for Escape key
   useEffect(() => {
@@ -89,10 +97,10 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       setIsPublic(wishlist.isPublic);
       setAllowEdits(wishlist.allowEdits);
       setIsArchived(wishlist.isArchived || false);
+      setWishlistTitle(wishlist.title || '');
+      setWishlistDescription(wishlist.description || '');
       const currentListCurrency = wishlist.currency || DEFAULT_CURRENCY;
       setListCurrency(currentListCurrency);
-      // Update new item currency to match list currency when wishlist loads
-      setNewItemCurrency(currentListCurrency);
     }
   }, [wishlist, resolvedParams.id]);
 
@@ -154,9 +162,36 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       
       // Include the token in the request if it exists
       const response = await fetch(`/api/wishlists/${resolvedParams.id}${shareToken ? `?token=${shareToken}` : ''}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch wishlist');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch wishlist' }));
+        
+        // Handle specific error cases
+        if (response.status === 404) {
+          toast.error('Wishlist not found', {
+            description: 'This wishlist does not exist or has been deleted.',
+          });
+          // Redirect to home after a delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+          return;
+        }
+        
+        if (response.status === 403) {
+          toast.error('Access denied', {
+            description: errorData.error || 'You do not have permission to view this wishlist.',
+          });
+          // Redirect to home after a delay
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+          return;
+        }
+        
+        throw new Error(errorData.error || 'Failed to fetch wishlist');
       }
+      
       const data = await response.json();
       setWishlist(data);
       setUserPermissions(data.userPermissions || { canEdit: false, isOwner: false });
@@ -165,6 +200,10 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to fetch wishlist',
       });
+      // Redirect to home on unexpected errors
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
     } finally {
       setIsLoading(false);
     }
@@ -187,84 +226,59 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     fetchUserReservations();
   }, [fetchWishlist, fetchUserReservations]);
   
-  const handleAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!wishlist) return;
+  const handleItemAdded = useCallback((itemId: string) => {
+    // Refresh wishlist
+    fetchWishlist();
+    
+    // Scroll to the new item and highlight it
+    setTimeout(() => {
+      const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+      if (itemElement) {
+        itemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        itemElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+        setTimeout(() => {
+          itemElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+        }, 2000);
+      }
+    }, 100);
+  }, [fetchWishlist]);
 
-    try {
-      // Only include currency if it's different from list's currency
-      const itemCurrency = newItemCurrency !== listCurrency ? newItemCurrency : undefined;
-      
-      const response = await fetch(`/api/wishlists/${resolvedParams.id}/items`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newItemName,
-          description: newItemDescription,
-          price: newItemPrice ? parseFloat(newItemPrice) : undefined,
-          currency: itemCurrency,
-          url: newItemUrl,
-          imageUrl: newItemImageUrl
-        }),
-      });
+  const handleItemUpdated = useCallback((updatedItem: WishlistItem) => {
+    // Optimistically update the local state
+    setWishlist((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((item) =>
+          item.id === updatedItem.id ? updatedItem : item
+        ),
+      };
+    });
+    setEditDialogOpen(false);
+    setEditingItem(null);
+    // Optionally refetch to ensure consistency (can be removed if optimistic updates are sufficient)
+    fetchWishlist();
+  }, [fetchWishlist]);
 
-      if (!response.ok) throw new Error('Failed to add item');
+  const handleItemDeleted = useCallback((itemId: string) => {
+    // Optimistically update the local state
+    setWishlist((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.filter((item) => item.id !== itemId),
+      };
+    });
+    setEditDialogOpen(false);
+    setEditingItem(null);
+    // Optionally refetch to ensure consistency (can be removed if optimistic updates are sufficient)
+    fetchWishlist();
+  }, [fetchWishlist]);
 
-      // Reset form
-      setNewItemName('');
-      setNewItemDescription('');
-      setNewItemPrice('');
-      setNewItemCurrency(listCurrency);
-      setNewItemUrl('');
-      setNewItemImageUrl('');
-
-      // Refresh wishlist
-      fetchWishlist();
-      toast.success('Item added successfully');
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to add item',
-      });
-    }
-  };
-
-  const handleEditItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!wishlist || !editingItem) return;
-
-    try {
-      // Only include currency if it's different from list's currency
-      const itemCurrency = editingItem.currency !== listCurrency ? editingItem.currency : undefined;
-      
-      const response = await fetch(`/api/wishlists/${resolvedParams.id}/items/${editingItem.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editingItem.name,
-          description: editingItem.description,
-          price: editingItem.price,
-          currency: itemCurrency,
-          url: editingItem.url,
-          imageUrl: editingItem.imageUrl
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update item');
-
-      setEditDialogOpen(false);
-      setEditingItem(null);
-      fetchWishlist();
-      toast.success('Item updated successfully');
-    } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to update item',
-      });
-    }
-  };
-
-  const handleDeleteItem = async () => {
+  const handleDeleteItemConfirm = async () => {
     if (!wishlist || !itemToDelete) return;
 
+    setIsDeletingItem(true);
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}/items/${itemToDelete.id}`, {
         method: 'DELETE',
@@ -280,6 +294,8 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to delete item',
       });
+    } finally {
+      setIsDeletingItem(false);
     }
   };
 
@@ -321,13 +337,15 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
     }
   };
 
-  // Update privacy settings
-  const updatePrivacySettings = async () => {
+  // Update wishlist settings (title, description, currency, and privacy settings)
+  const updateWishlistSettings = async () => {
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          title: wishlistTitle,
+          description: wishlistDescription,
           isPublic, 
           allowEdits,
           currency: listCurrency
@@ -335,7 +353,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update privacy settings');
+        throw new Error('Failed to update wishlist settings');
       }
       
       toast.success('Settings updated');
@@ -413,6 +431,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
   };
 
   const handleDeleteWishlist = async () => {
+    setIsDeletingWishlist(true);
     try {
       const response = await fetch(`/api/wishlists/${resolvedParams.id}`, {
         method: 'DELETE',
@@ -426,6 +445,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
       // Redirect to home page after deletion
       window.location.href = '/';
     } catch (error) {
+      setIsDeletingWishlist(false);
       toast.error('Error', {
         description: error instanceof Error ? error.message : 'Failed to delete wishlist',
       });
@@ -507,7 +527,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                 variant="outline" 
                 size="icon" 
                 onClick={() => setShowSettingsDialog(true)}
-                title="Privacy Settings"
+                title="Wishlist Settings"
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -525,94 +545,27 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
           
           {/* Show "Add Item" button only for users with edit permission and not archived */}
           {userPermissions.canEdit && !wishlist.isArchived && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button>
+            <>
+              <AddItemDialog
+                wishlistId={resolvedParams.id}
+                listCurrency={listCurrency}
+                open={addItemOpen}
+                onOpenChange={handleAddItemDialogChange}
+                onItemAdded={handleItemAdded}
+                trigger={!isDesktop ? (
+                  <Button>
+                    <Plus className="h-4 w-4" />
+                    Add Item
+                  </Button>
+                ) : undefined}
+              />
+              {isDesktop && (
+                <Button onClick={() => setAddItemOpen(true)}>
                   <Plus className="h-4 w-4" />
                   Add Item
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[calc(100vw-2rem)] max-w-80 sm:w-80">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium leading-none">Add Item</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Add a new item to your wishlist.
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    <div className="grid gap-1">
-                      <Label htmlFor="name">Name</Label>
-                      <Input 
-                        id="name"
-                        value={newItemName}
-                        onChange={(e) => setNewItemName(e.target.value)}
-                        placeholder="Enter item name"
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="description">Description (optional)</Label>
-                      <Textarea 
-                        id="description"
-                        value={newItemDescription}
-                        onChange={(e) => setNewItemDescription(e.target.value)}
-                        placeholder="Add a description"
-                        rows={3}
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="price">Price (optional)</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                          id="price"
-                          type="number"
-                          value={newItemPrice}
-                          onChange={(e) => setNewItemPrice(e.target.value)}
-                          placeholder="Enter price"
-                          min="0"
-                          step="0.01"
-                          className="flex-1"
-                        />
-                        <Select 
-                          value={newItemCurrency} 
-                          onValueChange={setNewItemCurrency}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Select currency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CURRENCIES.map((curr) => (
-                              <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                                {curr.alpha3} — {curr.symbol}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="url">URL (optional)</Label>
-                      <Input 
-                        id="url"
-                        value={newItemUrl}
-                        onChange={(e) => setNewItemUrl(e.target.value)}
-                        placeholder="https://example.com/item"
-                      />
-                    </div>
-                    <div className="grid gap-1">
-                      <Label htmlFor="imageUrl">Image URL (optional)</Label>
-                      <Input 
-                        id="imageUrl"
-                        value={newItemImageUrl}
-                        onChange={(e) => setNewItemImageUrl(e.target.value)}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
-                    <Button onClick={handleAddItem}>Add Item</Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -646,311 +599,144 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         )}
       </div>
 
-      {/* Settings dialog for owners */}
-      {showSettingsDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md lg:max-w-2xl max-h-[calc(100vh-2rem)] flex flex-col relative shadow-lg">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-white rounded-t-lg shrink-0">
-              <h2 className="text-lg sm:text-xl font-heading font-bold">Wishlist Settings</h2>
-              <div className="flex items-center gap-2">
-                {isArchived && (
-                  <Badge variant="secondary" className="text-xs">
-                    Archived
-                  </Badge>
-                )}
-                <button
-                  onClick={() => setShowSettingsDialog(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                  aria-label="Close"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            {/* Scrollable Content */}
-            <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6">
-              <div className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Privacy</h3>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="public-toggle" className="font-medium">Public Wishlist</Label>
-                    <p className="text-sm text-gray-500">Anyone can view using just the wishlist ID.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isPublic}
-                    onChange={(e) => setIsPublic(e.target.checked)}
-                    disabled={isArchived}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="edits-toggle" className="font-medium">Allow Edits</Label>
-                    <p className="text-sm text-gray-500">Anyone with access can add or edit items</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={allowEdits}
-                    onChange={(e) => setAllowEdits(e.target.checked)}
-                    disabled={isArchived}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Currency</h3>
-                <div className="grid gap-2">
-                  <Label htmlFor="currency-select">Default Currency</Label>
-                  <Select value={listCurrency} onValueChange={setListCurrency} disabled={isArchived}>
-                    <SelectTrigger id="currency-select">
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CURRENCIES.map((curr) => (
-                        <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                          {curr.alpha3} — {curr.symbol}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-gray-500">Items will use this currency by default</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Sharing</h3>
-                
-                {/* Short Link Section */}
-                <div className="space-y-2">
-                  <Label htmlFor="short-link">Short Link</Label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="flex-1 flex flex-col sm:flex-row gap-2">
-                        <Input 
-                          id="short-link"
-                          value={shortUrl || 'Generating...'} 
-                          readOnly 
-                          onClick={(e) => e.currentTarget.select()}
-                          disabled={isArchived}
-                          className="font-mono text-xs sm:text-sm"
-                        />
-                      <Button variant="outline" onClick={copyShareLink} disabled={isArchived || !shortUrl}>
-                        Copy
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Custom Code Editor */}
-                  {userPermissions.isOwner && !isArchived && (
-                    <div className="space-y-2">
-                      {!isCustomCodeEditing ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500">
-                            Code: <span className="font-mono font-semibold">{shortCode || 'auto-generated'}</span>
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setCustomCode(shortCode || '');
-                              setIsCustomCodeEditing(true);
-                            }}
-                            className="h-7 px-2 text-xs"
-                          >
-                            <Pencil className="h-3 w-3 mr-1" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <div className="flex-1">
-                            <Input
-                              value={customCode}
-                              onChange={(e) => setCustomCode(e.target.value)}
-                              placeholder="Enter custom code (3-20 chars)"
-                              className="font-mono text-xs sm:text-sm"
-                              maxLength={20}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              Alphanumeric only, 3-20 characters
-                            </p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={updateCustomCode}
-                            disabled={!customCode.trim() || customCode.trim().length < 3}
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setIsCustomCodeEditing(false);
-                              setCustomCode(shortCode || '');
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Full Link (Collapsible) */}
-                  <details className="text-sm">
-                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
-                      Show full link
-                    </summary>
-                    <div className="mt-2 flex flex-col sm:flex-row gap-2">
-                      <Input 
-                        value={shareUrl} 
-                        readOnly 
-                        onClick={(e) => e.currentTarget.select()}
-                        disabled={isArchived}
-                        className="font-mono text-xs break-all"
-                      />
-                      <Button variant="outline" size="sm" onClick={() => {
-                        navigator.clipboard.writeText(shareUrl);
-                        toast.success('Full link copied');
-                      }} disabled={isArchived}>
-                        Copy
-                      </Button>
-                    </div>
-                  </details>
-                </div>
-
-                {/* Analytics Section */}
-                {analytics && userPermissions.isOwner && (
-                  <div className="space-y-2 pt-2">
-                    <Label>Link Analytics</Label>
-                    <div className="flex justify-start gap-4">
-                      <div>
-                        <p className="text-sm"><span className="text-gray-500">Total clicks:</span> {analytics.totalClicks}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm"><span className="text-gray-500">Today:</span> {analytics.clicksByDate.length > 0 
-                            ? analytics.clicksByDate[analytics.clicksByDate.length - 1].count 
-                            : 0}
-                        </p>
-                      </div>
-                    </div>
-                    {analytics.recentClicks.length > 0 && (
-                      <details className="text-sm">
-                        <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mt-2">
-                          Recent clicks ({analytics.recentClicks.length})
-                        </summary>
-                        <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                          {analytics.recentClicks.map((click, idx) => (
-                            <div key={idx} className="text-sm text-gray-600 py-1 border-b">
-                              {new Date(click.clickedAt).toLocaleString()}
-                              {click.referer && (
-                                <span className="ml-2 text-gray-400">from {new URL(click.referer).hostname}</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-gray-500">Once you delete a wishlist, there is no going back. Please be certain.</p>
-                  <Button 
-                    variant="destructive" 
-                    onClick={() => {
-                      setShowSettingsDialog(false);
-                      setShowDeleteDialog(true);
-                    }}
-                  >
-                    Delete Wishlist
-                  </Button>
-                </div>
-              </div>
-              
-              </div>
-            </div>
-            
-            {/* Footer */}
-            <div className="border-t p-4 sm:p-6 bg-white rounded-b-lg shrink-0">
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowSettingsDialog(false)} className="w-full sm:w-auto">
-                  Cancel
-                </Button>
-                <Button 
-                  variant={isArchived ? "default" : "outline"}
-                  onClick={handleArchiveToggle}
-                  className="w-full sm:w-auto"
-                >
-                  {isArchived ? 'Unarchive' : 'Archive'}
-                </Button>
-                <Button onClick={updatePrivacySettings} disabled={isArchived} className="w-full sm:w-auto">
-                  Save Changes
-                </Button>
-              </div>
-            </div>
+      {/* Settings Dialog/Drawer */}
+      <ResponsiveDialog
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
+        title={
+          <div className="flex items-center justify-between">
+            <span>Wishlist Settings</span>
+            {isArchived && (
+              <Badge variant="secondary" className="text-xs">
+                Archived
+              </Badge>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* Delete Wishlist Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Delete Wishlist</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-gray-600">
-              Are you sure you want to delete this wishlist? This action cannot be undone.
-              All items and reservations will be permanently deleted.
-            </p>
-          </div>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} className="w-full sm:w-auto">
+        }
+        contentClassName="sm:max-w-[600px]"
+        footer={
+          <>
+            <Button size="lg" className="w-full sm:w-auto" onClick={updateWishlistSettings}>
+              Save Changes
+            </Button>
+            <Button 
+              variant="secondary"
+              size="lg"
+              onClick={handleArchiveToggle}
+              className="w-full sm:w-auto"
+            >
+              {isArchived ? 'Unarchive' : 'Archive'}
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => setShowSettingsDialog(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteWishlist} className="w-full sm:w-auto">
+          </>
+        }
+      >
+        <SettingsForm
+          wishlistTitle={wishlistTitle}
+          setWishlistTitle={setWishlistTitle}
+          wishlistDescription={wishlistDescription}
+          setWishlistDescription={setWishlistDescription}
+          listCurrency={listCurrency}
+          setListCurrency={setListCurrency}
+          isPublic={isPublic}
+          setIsPublic={setIsPublic}
+          allowEdits={allowEdits}
+          setAllowEdits={setAllowEdits}
+          isArchived={isArchived}
+          shareUrl={shareUrl}
+          shortUrl={shortUrl}
+          shortCode={shortCode}
+          customCode={customCode}
+          setCustomCode={setCustomCode}
+          isCustomCodeEditing={isCustomCodeEditing}
+          setIsCustomCodeEditing={setIsCustomCodeEditing}
+          updateCustomCode={updateCustomCode}
+          copyShareLink={copyShareLink}
+          analytics={analytics}
+          userPermissions={userPermissions}
+          isMobile={!isDesktop}
+          onDeleteClick={() => {
+            setShowSettingsDialog(false);
+            setShowDeleteDialog(true);
+          }}
+        />
+      </ResponsiveDialog>
+
+      {/* Delete Wishlist Confirmation Dialog */}
+      <ResponsiveDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Wishlist"
+        contentClassName="sm:max-w-lg"
+        footer={!isDesktop ? (
+          <>
+            <Button 
+              variant="destructive"
+              size="lg"
+              onClick={handleDeleteWishlist}
+              disabled={isDeletingWishlist}
+              className="w-full"
+            >
+              Delete Wishlist
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" size="lg" className="w-full" disabled={isDeletingWishlist}>
+                Cancel
+              </Button>
+            </DrawerClose>
+          </>
+        ) : undefined}
+      >
+        <div className="py-4">
+          <p>
+            Are you sure you want to delete this wishlist? This action cannot be undone.
+            All items and reservations will be permanently deleted.
+          </p>
+        </div>
+        {isDesktop && (
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteDialog(false)} 
+              disabled={isDeletingWishlist}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteWishlist}
+              disabled={isDeletingWishlist}
+              className="w-full sm:w-auto"
+            >
               Delete Wishlist
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+      </ResponsiveDialog>
 
       {/* Items grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         {wishlist.items.length === 0 ? (
-          <div className="col-span-full text-center p-10 border border-dashed rounded-lg">
-            <p className="text-gray-500">
-              {userPermissions.canEdit 
-                ? "This wishlist is empty. Add your first item!" 
-                : "This wishlist is empty."}
-            </p>
-          </div>
+          <Empty className="col-span-full border-1 border-dashed border-secondary rounded-xl">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Gift className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>This wishlist is empty</EmptyTitle>
+              <EmptyDescription>
+                {userPermissions.canEdit 
+                  ? "Add your first item to get started!" 
+                  : "There are no items in this wishlist yet."}
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent />
+          </Empty>
         ) : (
           wishlist.items.map((item) => (
-            <Card key={item.id} className="group relative gap-0 py-0">
+            <Card key={item.id} data-item-id={item.id} className="group relative gap-0 py-0">
               {/* Show edit/delete buttons only for users with edit permission and not archived */}
               {userPermissions.canEdit && !wishlist.isArchived && (
                 <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
@@ -1021,7 +807,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline text-sm inline-flex items-center gap-1"
+                      className="text-accent-foreground hover:underline text-sm inline-flex items-center gap-1"
                     >
                       View Item
                       <ArrowUpRight className="h-3 w-3"/>
@@ -1068,7 +854,7 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
                           }}
                           className="h-8"
                         >
-                          <Gift className="h-4 w-4 mr-2" />
+                          <Gift className="h-4 w-4" />
                           Reserve
                         </Button>
                       )
@@ -1081,178 +867,75 @@ export default function WishlistPage({ params }: { params: Promise<{ id: string 
         )}
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Edit Item</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Name</Label>
-              <Input
-                id="edit-name"
-                value={editingItem?.name || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, name: e.target.value} : null)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-description">Description (optional)</Label>
-              <Textarea
-                id="edit-description"
-                value={editingItem?.description || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, description: e.target.value} : null)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-price">Price (optional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="edit-price"
-                  type="number"
-                  step="0.01"
-                  value={editingItem?.price || ''}
-                  onChange={(e) => setEditingItem(prev => prev ? {...prev, price: parseFloat(e.target.value) || 0} : null)}
-                  className="flex-1"
-                />
-                <Select 
-                  value={editingItem?.currency || listCurrency} 
-                  onValueChange={(value) => setEditingItem(prev => prev ? {...prev, currency: value} : null)}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map((curr) => (
-                      <SelectItem key={curr.alpha3} value={curr.alpha3}>
-                        {curr.alpha3} — {curr.symbol}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-url">URL (optional)</Label>
-              <Input
-                id="edit-url"
-                type="url"
-                value={editingItem?.url || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, url: e.target.value} : null)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-image-url">Image URL (optional)</Label>
-              <Input
-                id="edit-image-url"
-                type="url"
-                value={editingItem?.imageUrl || ''}
-                onChange={(e) => setEditingItem(prev => prev ? {...prev, imageUrl: e.target.value} : null)}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">
-              Cancel
-            </Button>
-            <Button onClick={handleEditItem} className="w-full sm:w-auto">
-              Save Changes
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Item Dialog */}
+      {editingItem && (
+        <EditItemDialog
+          item={editingItem}
+          wishlistId={resolvedParams.id}
+          listCurrency={listCurrency}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onItemUpdated={handleItemUpdated}
+          onItemDeleted={handleItemDeleted}
+        />
+      )}
 
-      {/* Delete Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Delete Item</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>Are you sure you want to delete &quot;{itemToDelete?.name}&quot;? This action cannot be undone.</p>
-          </div>
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="w-full sm:w-auto">
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteItem} className="w-full sm:w-auto">
-              Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Item Dialog */}
+      <DeleteItemDialog
+        item={itemToDelete}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteItemConfirm}
+        isLoading={isDeletingItem}
+      />
 
-      {/* Reserve Dialog */}
-      <Dialog open={reserveDialogOpen} onOpenChange={setReserveDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Reserve Item</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleReserveItem}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="reserver-email">Your Email (optional)</Label>
-                <Input
-                  id="reserver-email"
-                  type="email"
-                  value={reserverEmail}
-                  onChange={(e) => setReserverEmail(e.target.value)}
-                  placeholder="Enter your email to receive updates"
-                />
-                <p className="text-xs text-gray-500">
-                  {allowDisclosure && !reserverEmail && !displayName ? 
-                    "Please provide either an email or display name if you want to be identified" : 
-                    "Your email will only be visible to the wishlist creator if you allow disclosure"}
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="display-name">Display Name (optional)</Label>
-                <Input
-                  id="display-name"
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="How you'd like to be identified"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="passphrase">Passphrase (optional)</Label>
-                <Input
-                  id="passphrase"
-                  type="text"
-                  value={passphrase}
-                  onChange={(e) => setPassphrase(e.target.value)}
-                  placeholder="A secret word to identify your reservation"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="allow-disclosure"
-                  checked={allowDisclosure}
-                  onChange={(e) => setAllowDisclosure(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <Label htmlFor="allow-disclosure" className="text-sm">
-                  Allow the creator to see my identity
-                </Label>
-              </div>
-            </div>
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setReserveDialogOpen(false)} className="w-full sm:w-auto">
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={allowDisclosure && !reserverEmail && !displayName}
-                className="w-full sm:w-auto"
-              >
-                Reserve
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Reserve Dialog/Drawer */}
+      <ResponsiveDialog
+        open={reserveDialogOpen}
+        onOpenChange={setReserveDialogOpen}
+        title="Reserve Item"
+        footer={!isDesktop ? (
+          <>
+            <Button 
+              type="submit"
+              size="lg"
+              form="reserve-item-form"
+              disabled={allowDisclosure && !reserverEmail && !displayName}
+              className="w-full"
+            >
+              Reserve
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" size="lg" className="w-full">Cancel</Button>
+            </DrawerClose>
+          </>
+        ) : undefined}
+      >
+        <ReserveItemForm
+          reserverEmail={reserverEmail}
+          setReserverEmail={setReserverEmail}
+          displayName={displayName}
+          setDisplayName={setDisplayName}
+          passphrase={passphrase}
+          setPassphrase={setPassphrase}
+          allowDisclosure={allowDisclosure}
+          setAllowDisclosure={setAllowDisclosure}
+          isMobile={!isDesktop}
+          autoFocus={isDesktop}
+          onSubmit={handleReserveItem}
+        />
+        {isDesktop && (
+          <div className="flex justify-end gap-2 pt-2">
+            <Button 
+              type="submit"
+              form="reserve-item-form"
+              disabled={allowDisclosure && !reserverEmail && !displayName}
+            >
+              Reserve
+            </Button>
+          </div>
+        )}
+      </ResponsiveDialog>
     </div>
     </>
   );

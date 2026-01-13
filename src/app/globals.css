@@ -1,8 +1,6 @@
 @import 'tailwindcss';
 /* @import 'tw-animate-css'; */
 
-@custom-variant dark (&:is(.dark *));
-
 @theme {
   --font-sans: var(--font-open-sans);
   --font-montserrat: var(--font-montserrat);
@@ -60,8 +58,8 @@
 }
 
 @utility container {
+  @apply mx-auto px-4 sm:px-6 lg:px-8;
   margin-inline: auto;
-  padding-inline: 2rem;
   @media (width >= --theme(--breakpoint-sm)) {
     max-width: none;
   }
@@ -110,9 +108,6 @@
   }
 }
 
-@utility container {
-  @apply mx-auto px-4 sm:px-6 lg:px-8;
-}
 
 @layer base {
   :root {
@@ -131,10 +126,10 @@
     --secondary: hsl(210 40% 96.1%);
     --secondary-foreground: hsl(222.2 47.4% 11.2%);
    
-    --muted: hsl(210 40% 96.1%);
+    --muted: hsl(278, 40%, 96%);
     --muted-foreground: hsl(215.4 16.3% 46.9%);
    
-    --accent: hsl(210 40% 96.1%);
+    --accent: hsl(15, 93%, 66%);
     --accent-foreground: hsl(222.2 47.4% 11.2%);
    
     --destructive: hsl(0 84.2% 60.2%);
@@ -166,12 +161,12 @@
     --muted: hsl(217.2 32.6% 17.5%);
     --muted-foreground: hsl(215 20.2% 65.1%);
    
-    --accent: hsl(217.2 32.6% 17.5%);
-    --accent-foreground: hsl(210 40% 98%);
+    --accent: hsla(15, 93%, 66%, 0.1);
+    --accent-foreground: hsl(15, 93%, 66%);
    
     --destructive: hsl(0 62.8% 30.6%);
     --destructive-foreground: hsl(210 40% 98%);
-   
+  
     --border: hsl(217.2 32.6% 17.5%);
     --input: hsl(217.2 32.6% 17.5%);
     --ring: hsl(212.7 26.8% 83.9%);

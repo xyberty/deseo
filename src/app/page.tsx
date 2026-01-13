@@ -3,15 +3,20 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
 import Link from 'next/link';
+import Image from 'next/image';
 import { toast } from 'sonner';
 import type { Wishlist, WishlistItem } from '@/app/types/wishlist';
 import { Button } from '@/app/components/ui/button';
 import { Gift, PenSquare, List, Clock, ChevronDown, ChevronUp, Archive } from 'lucide-react';
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from '@/app/components/ui/empty';
 import { Badge } from '@/app/components/ui/badge';
 import { useAuth } from '@/app/hooks/useAuth';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';
 import { MagicLinkForm } from '@/app/components/MagicLinkForm';
+import { ResponsiveDialog } from '@/app/components/ResponsiveDialog';
+import { DrawerClose } from '@/app/components/ui/drawer';
+import { useMediaQuery } from '@/app/hooks/use-media-query';
 import { getBaseUrl } from './lib/constants';
+import { getFirstItemImage } from './lib/utils';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -21,7 +26,10 @@ export default function HomePage() {
   const [reservations, setReservations] = useState<{wishlistId: string, title: string, items: WishlistItem[]}[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [savePromptOpen, setSavePromptOpen] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   
   useEffect(() => {
     fetchData();
@@ -77,6 +85,44 @@ export default function HomePage() {
   const hasAnyContent = hasCreatedWishlists || hasArchivedWishlists || hasSharedWishlists || hasReservations;
   const hasAnonymousWishlists = !authLoading && !isAuthenticated && hasCreatedWishlists;
 
+  const handleSendMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingMagicLink(true);
+
+    try {
+      const response = await fetch('/api/auth/send-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: magicLinkEmail }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send magic link');
+      }
+
+      toast.success('Magic link sent!', {
+        description: 'Please check your email for the sign-in link.',
+      });
+
+      setSavePromptOpen(false);
+      setMagicLinkEmail('');
+    } catch (error) {
+      toast.error('Error', {
+        description: error instanceof Error ? error.message : 'Something went wrong',
+      });
+    } finally {
+      setIsSendingMagicLink(false);
+    }
+  };
+
+  const handleSavePromptClose = (open: boolean) => {
+    setSavePromptOpen(open);
+    if (!open) {
+      setMagicLinkEmail('');
+    }
+  };
+
   const baseUrl = getBaseUrl()
 
   return (
@@ -110,20 +156,25 @@ export default function HomePage() {
       />
       <div className="container mx-auto p-3 sm:p-4 lg:p-6">
         {!hasAnyContent && (
-          <div className="text-center p-12 border border-dashed rounded-lg my-8">
-            <h1 className="text-2xl font-bold mb-2">Welcome to Deseo!</h1>
-            <p className="text-gray-500 mb-6">
-              Your dashboard is empty. Start by creating a wishlist or viewing shared wishlists.
-            </p>
-            <div className="flex flex-col gap-4 max-w-md mx-auto">
+          <Empty className="my-8 border-1 border-dashed border-secondary rounded-xl">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <PenSquare className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>Welcome to Deseo!</EmptyTitle>
+              <EmptyDescription>
+                Your dashboard is empty. Start by creating a wishlist or viewing shared wishlists.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
               <Link href="/create" className="w-full">
                 <Button className="w-full">
                   <PenSquare className="h-4 w-4 mr-2" />
                   Create My First Wishlist
                 </Button>
               </Link>
-            </div>
-          </div>
+            </EmptyContent>
+          </Empty>
         )}
         
         {/* My Wishlists Section */}
@@ -150,20 +201,33 @@ export default function HomePage() {
             {/* Active Wishlists */}
             {hasCreatedWishlists && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {createdWishlists.map(wishlist => (
-                  <Card key={wishlist._id} className="overflow-hidden">
-                    <CardHeader className="p-4 pb-2">
+                {createdWishlists.map(wishlist => {
+                  const firstItemImage = getFirstItemImage(wishlist);
+                  return (
+                  <Card key={wishlist._id} className="overflow-hidden gap-4 py-4">
+                    {firstItemImage && (
+                      <div className="relative w-full h-48 overflow-hidden">
+                        <Image
+                          src={firstItemImage}
+                          alt={wishlist.title}
+                          fill
+                          className="p-4 object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    )}
+                    <CardHeader>
                       <CardTitle className="text-lg">{wishlist.title}</CardTitle>
                       {wishlist.description && (
                         <CardDescription className="line-clamp-2">{wishlist.description}</CardDescription>
                       )}
                     </CardHeader>
-                    <CardContent className="p-4 pt-2">
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <CardContent className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <List className="h-4 w-4" />
                         <span>{wishlist.items.length} items</span>
                       </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2">
                         {wishlist.isPublic && (
                           <Badge variant="outline">Public</Badge>
                         )}
@@ -172,17 +236,18 @@ export default function HomePage() {
                         )}
                       </div>
                     </CardContent>
-                    <CardFooter className="p-4 pt-0 border-t flex justify-between">
-                      <div className="text-xs text-gray-500">
+                    <CardFooter className="border-t [.border-t]:pt-4 flex justify-between">
+                      <div className="text-xs text-muted-foreground">
                         <Clock className="h-3 w-3 inline-block mr-1" />
                         Created {new Date(wishlist.createdAt).toLocaleDateString()}
                       </div>
                       <Link href={`/wishlist/${wishlist._id}`}>
-                        <Button size="sm">View</Button>
+                        <Button>View</Button>
                       </Link>
                     </CardFooter>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
             
@@ -204,8 +269,21 @@ export default function HomePage() {
                 
                 {showArchived && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {archivedWishlists.map(wishlist => (
+                    {archivedWishlists.map(wishlist => {
+                      const firstItemImage = getFirstItemImage(wishlist);
+                      return (
                       <Card key={wishlist._id} className="overflow-hidden opacity-75">
+                        {firstItemImage && (
+                          <div className="relative w-full h-48 overflow-hidden">
+                            <Image
+                              src={firstItemImage}
+                              alt={wishlist.title}
+                              fill
+                              className="p-4 object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        )}
                         <CardHeader className="p-4 pb-2">
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-lg">{wishlist.title}</CardTitle>
@@ -231,7 +309,8 @@ export default function HomePage() {
                           </Link>
                         </CardFooter>
                       </Card>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -247,8 +326,21 @@ export default function HomePage() {
               <h2 className="text-xl font-bold">Shared Wishlists</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sharedWishlists.map(wishlist => (
+              {sharedWishlists.map(wishlist => {
+                const firstItemImage = getFirstItemImage(wishlist);
+                return (
                 <Card key={wishlist._id} className="overflow-hidden">
+                  {firstItemImage && (
+                    <div className="relative w-full h-48 overflow-hidden">
+                      <Image
+                        src={firstItemImage}
+                        alt={wishlist.title}
+                        fill
+                        className="p-4 object-cover"
+                        unoptimized
+                      />
+                    </div>
+                  )}
                   <CardHeader className="p-4 pb-2">
                     <CardTitle className="text-lg">{wishlist.title}</CardTitle>
                     {wishlist.description && (
@@ -271,7 +363,8 @@ export default function HomePage() {
                     </Link>
                   </CardFooter>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -314,17 +407,52 @@ export default function HomePage() {
         )}
 
         {/* Save to Account Dialog */}
-        <Dialog open={savePromptOpen} onOpenChange={setSavePromptOpen}>
-          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="text-base sm:text-lg">Save Your Wishlists</DialogTitle>
-              <DialogDescription className="text-sm">
-                Sign in with your email to access your wishlists from any device, anytime.
-              </DialogDescription>
-            </DialogHeader>
-            <MagicLinkForm onSuccess={() => setSavePromptOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <ResponsiveDialog
+          open={savePromptOpen}
+          onOpenChange={handleSavePromptClose}
+          title="Save Your Wishlists"
+          footer={!isDesktop ? (
+            <>
+              <Button 
+                type="submit"
+                size="lg"
+                form="magic-link-form"
+                disabled={isSendingMagicLink}
+                className="w-full"
+              >
+                {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="outline" size="lg" className="w-full">Cancel</Button>
+              </DrawerClose>
+            </>
+          ) : undefined}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Sign in with your email to access your wishlists from any device, anytime.
+            </p>
+            <MagicLinkForm
+              email={magicLinkEmail}
+              setEmail={setMagicLinkEmail}
+              isLoading={isSendingMagicLink}
+              isMobile={!isDesktop}
+              autoFocus={isDesktop}
+              onSubmit={handleSendMagicLink}
+            />
+            {isDesktop && (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button 
+                  type="submit"
+                  form="magic-link-form"
+                  disabled={isSendingMagicLink}
+                >
+                  {isSendingMagicLink ? 'Sending...' : 'Send Magic Link'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </ResponsiveDialog>
       </div>
     </>
   );

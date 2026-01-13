@@ -70,12 +70,14 @@ export async function POST(request: Request) {
     // If it's an anonymous user, set the owner token in a cookie
     if (!userId) {
       // Set a cookie to identify the owner
+      // Use secure cookies if the request is HTTPS (works for staging and production)
+      const isSecure = requestUrl.protocol === 'https:' || process.env.NODE_ENV === 'production';
       response.cookies.set(`owner_${result.insertedId.toString()}`, ownerToken, {
         expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
         path: '/',
         sameSite: 'lax',
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecure,
       });
     }
     

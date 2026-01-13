@@ -7,72 +7,63 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { DrawerClose } from "@/app/components/ui/drawer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
-import { Field, FieldGroup, FieldSet, FieldLegend, FieldLabel, FieldDescription } from "@/app/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/app/components/ui/field";
 import { ResponsiveDialog } from "@/app/components/ResponsiveDialog";
-import { DeleteItemDialog } from "@/app/components/DeleteItemDialog";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { CURRENCIES } from "@/app/lib/currencies";
 import { toast } from "sonner";
 import { ChevronsUpDown } from "lucide-react";
-import type { WishlistItem } from "@/app/types/wishlist";
 
-interface EditItemDialogProps {
-  item: WishlistItem;
+interface AddItemDialogProps {
   wishlistId: string;
   listCurrency: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onItemUpdated: (updatedItem: WishlistItem) => void;
-  onItemDeleted: (itemId: string) => void;
+  onItemAdded: (itemId: string) => void;
+  trigger?: React.ReactNode;
 }
 
-export function EditItemDialog({
-  item,
+export function AddItemDialog({
   wishlistId,
   listCurrency,
   open,
   onOpenChange,
-  onItemUpdated,
-  onItemDeleted,
-}: EditItemDialogProps) {
+  onItemAdded,
+  trigger,
+}: AddItemDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const [showMoreDetails, setShowMoreDetails] = useState(true);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
-    name: item.name,
-    description: item.description || "",
-    price: item.price ? String(item.price) : "",
-    currency: item.currency || listCurrency,
-    url: item.url || "",
-    imageUrl: item.imageUrl || "",
+    name: "",
+    description: "",
+    price: "",
+    currency: listCurrency,
+    url: "",
+    imageUrl: "",
   });
 
-  // Reset form when item changes or dialog opens/closes
+  // Reset form when dialog opens/closes
   useEffect(() => {
-    if (open && item) {
+    if (!open) {
       setFormData({
-        name: item.name,
-        description: item.description || "",
-        price: item.price ? String(item.price) : "",
-        currency: item.currency || listCurrency,
-        url: item.url || "",
-        imageUrl: item.imageUrl || "",
+        name: "",
+        description: "",
+        price: "",
+        currency: listCurrency,
+        url: "",
+        imageUrl: "",
       });
-      setShowMoreDetails(true);
+      setShowMoreDetails(false);
+    } else if (open && isDesktop && nameInputRef.current) {
       // Auto-focus on desktop
-      if (isDesktop && nameInputRef.current) {
-        setTimeout(() => {
-          nameInputRef.current?.focus();
-        }, 100);
-      }
-    } else if (!open) {
-      // Close delete confirmation when edit dialog closes
-      setShowDeleteConfirm(false);
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
     }
-  }, [open, item, listCurrency, isDesktop]);
+  }, [open, listCurrency, isDesktop]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,8 +73,8 @@ export function EditItemDialog({
       // Only include currency if it's different from list's currency
       const itemCurrency = formData.currency !== listCurrency ? formData.currency : undefined;
       
-      const response = await fetch(`/api/wishlists/${wishlistId}/items/${item.id}`, {
-        method: "PATCH",
+      const response = await fetch(`/api/wishlists/${wishlistId}/items`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -92,59 +83,30 @@ export function EditItemDialog({
           description: formData.description || undefined,
           price: formData.price ? parseFloat(formData.price) : undefined,
           currency: itemCurrency,
-          url: formData.url.trim() || "",
-          imageUrl: formData.imageUrl.trim() || "",
+          url: formData.url || undefined,
+          imageUrl: formData.imageUrl || undefined,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update item");
+        throw new Error("Failed to add item");
       }
 
-      const updatedItem: WishlistItem = {
-        ...item,
-        name: formData.name,
-        description: formData.description || undefined,
-        price: formData.price ? parseFloat(formData.price) : undefined,
-        currency: itemCurrency,
-        url: formData.url || undefined,
-        imageUrl: formData.imageUrl || undefined,
-      };
+      const data = await response.json();
+      const newItemId = data.item?.id;
 
-      onItemUpdated(updatedItem);
       onOpenChange(false);
-      toast.success("Item updated successfully");
+      toast.success("Item added successfully");
+      
+      // Notify parent to handle scrolling and highlighting
+      if (newItemId) {
+        onItemAdded(newItemId);
+      }
     } catch (error) {
-      console.error("Error updating item:", error);
-      toast.error("Failed to update item");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    setIsLoading(true);
-    setShowDeleteConfirm(false);
-
-    try {
-      const response = await fetch(`/api/wishlists/${wishlistId}/items/${item.id}`, {
-        method: "DELETE",
+      console.error("Error adding item:", error);
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Failed to add item",
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete item");
-      }
-
-      onItemDeleted(item.id);
-      onOpenChange(false);
-      toast.success("Item deleted successfully");
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      toast.error("Failed to delete item");
     } finally {
       setIsLoading(false);
     }
@@ -154,36 +116,27 @@ export function EditItemDialog({
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Edit Item"
+      title="Add Item"
+      trigger={trigger}
       footer={
         isDesktop ? (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              form="edit-item-form"
-              disabled={isLoading}
-            >
-              Save Changes
-            </Button>
-          </>
+          <Button 
+            type="submit"
+            form="add-item-form"
+            disabled={isLoading}
+          >
+            Save
+          </Button>
         ) : (
           <>
             <Button 
               type="submit"
               size="lg"
-              form="edit-item-form"
+              form="add-item-form"
               disabled={isLoading}
               className="w-full"
             >
-              Save Changes
+              Save
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" size="lg" className="w-full" disabled={isLoading}>
@@ -194,7 +147,7 @@ export function EditItemDialog({
         )
       }
     >
-      <form id="edit-item-form" onSubmit={handleSubmit}>
+      <form id="add-item-form" onSubmit={handleSubmit}>
         <FieldGroup className="py-2 space-y-0 gap-4">
           <Field>
             <FieldLabel htmlFor="name">Title *</FieldLabel>
@@ -205,6 +158,7 @@ export function EditItemDialog({
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter item name"
               autoComplete="off"
+              autoFocus={isDesktop}
               required
             />
           </Field>
@@ -291,47 +245,9 @@ export function EditItemDialog({
               </FieldGroup>
             </CollapsibleContent>
           </Collapsible>
-
-          {/* Danger Zone */}
-          <FieldSet>
-            <FieldLegend variant="label">Delete</FieldLegend>
-            <FieldGroup>
-              <Field orientation="responsive">
-                <FieldDescription>Once you delete this item, this cannot be undone.</FieldDescription>
-                {isDesktop ? (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={handleDeleteClick}
-                    disabled={isLoading}
-                  >
-                    Delete Item
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant="destructive"
-                    onClick={handleDeleteClick}
-                    disabled={isLoading}
-                  >
-                    Delete Item
-                  </Button>
-                )}
-              </Field>
-            </FieldGroup>
-          </FieldSet>
         </FieldGroup>
       </form>
-
-      {/* Delete Confirmation Dialog */}
-      <DeleteItemDialog
-        item={item}
-        open={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
-        onConfirm={handleDeleteConfirm}
-        isLoading={isLoading}
-      />
     </ResponsiveDialog>
   );
-} 
+}
+

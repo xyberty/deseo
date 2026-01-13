@@ -34,6 +34,14 @@ export async function GET(
     const db = await getDb();
     const { id: wishlistId } = await params;
     
+    // Validate ObjectId format
+    if (!ObjectId.isValid(wishlistId)) {
+      return NextResponse.json(
+        { error: 'Invalid wishlist ID format' },
+        { status: 400 }
+      );
+    }
+    
     // Get the wishlist
     const wishlist = await db.collection('wishlists').findOne({
       _id: new ObjectId(wishlistId),
