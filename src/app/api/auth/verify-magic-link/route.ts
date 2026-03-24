@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/app/lib/jwt';
 import { getDb } from '@/app/lib/mongodb';
+import { createSession } from '@/app/lib/sessions';
 import { cookies } from 'next/headers';
 import type { Db } from 'mongodb';
 
@@ -88,6 +89,12 @@ export async function GET(request: Request) {
     // Migrate anonymous wishlists to authenticated user
     await migrateAnonymousWishlists(db, email);
 
+    // Issue a new long-lived opaque session token (30 days).
+    // The magic-link JWT is single-use and expires in 15 minutes — it must
+    // never be stored in the session cookie. The session token is a random
+    // hex string with no decodable claims, verified by DB lookup only.
+    const sessionToken = await createSession(email);
+
     // Create response with redirect to home page
     // Use the request URL to preserve the current domain (staging or production)
     const requestUrl = new URL(request.url);
@@ -97,12 +104,12 @@ export async function GET(request: Request) {
     // Set secure cookie with proper attributes
     // Use secure cookies if the request is HTTPS (works for staging and production)
     const isSecure = requestUrl.protocol === 'https:' || process.env.NODE_ENV === "production";
-    response.cookies.set('token', token, {
+    response.cookies.set('token', sessionToken, {
       httpOnly: true,
       secure: isSecure,
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 30, // 30 days — matches session TTL
     });
 
     return response;
