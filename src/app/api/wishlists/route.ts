@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/app/lib/mongodb';
 import { cookies } from 'next/headers';
 import { nanoid } from 'nanoid';
-import { verifyToken } from '@/app/lib/jwt';
+import { getSession } from '@/app/lib/sessions';
 import { getServerBaseUrl } from '@/app/lib/constants';
 
 // Force Node.js runtime (required for jsonwebtoken)
@@ -18,8 +18,11 @@ async function getUserIdFromToken(): Promise<string | null> {
   }
   
   try {
-    const decoded = verifyToken(token);
-    return decoded.email; // Using email as user ID for simplicity
+    const session = await getSession(token);
+    if (!session) {
+      return null;
+    }
+    return session.email; // Using email as user ID for simplicity
   } catch (error) {
     console.error('Error verifying token:', error);
     return null;
